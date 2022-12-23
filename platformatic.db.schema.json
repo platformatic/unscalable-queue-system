@@ -1,5 +1,6 @@
 {
   "$id": "https://schemas.platformatic.dev/db",
+  "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "properties": {
     "server": {
@@ -37,7 +38,7 @@
                   "type": "integer"
                 }
               },
-              "additionalProperties": false
+              "additionalProperties": true
             }
           ]
         },
@@ -256,7 +257,6 @@
           ]
         }
       },
-      "additionalProperties": false,
       "required": [
         "connectionString"
       ]
@@ -522,7 +522,7 @@
       "$id": "https://schemas.platformatic.dev/service/pluginTypes",
       "$defs": {
         "plugin": {
-          "$id": "https://schemas.platformatic.dev/service/plugin",
+          "$id": "#plugin",
           "type": "object",
           "properties": {
             "path": {
@@ -536,6 +536,10 @@
               "properties": {
                 "outDir": {
                   "type": "string"
+                },
+                "build": {
+                  "type": "boolean",
+                  "default": true
                 }
               },
               "additionalProperties": false,
@@ -566,7 +570,7 @@
           "items": {
             "anyOf": [
               {
-                "$ref": "#/$defs/plugin"
+                "$ref": "#plugin"
               },
               {
                 "type": "string"
@@ -575,7 +579,7 @@
           }
         },
         {
-          "$ref": "#/$defs/plugin"
+          "$ref": "#plugin"
         },
         {
           "type": "string"
