@@ -53,12 +53,13 @@ module.exports = async function (app) {
 
     for (const item of items) {
       const { callbackUrl, method, body } = item
+      // We must JSON.parse(item.headers) because SQLite store JSON
+      // as strings.
+      const headers = item.headers ? JSON.parse(item.headers) : { 'content-type': 'application/json' }
       try {
         const res = await request(callbackUrl, {
           method,
-          headers: {
-            'content-type': 'application/json'
-          },
+          headers,
           body
         })
         if (res.statusCode >= 200 && res.statusCode < 300) {
@@ -68,11 +69,25 @@ module.exports = async function (app) {
               sentAt: new Date().getTime()
             }
           })
+          app.log.info({ callbackUrl, method }, 'callback succesful!')
+        } else {
+          let body
+          if (res.headers['content-type'].indexOf('application/json') === 0) {
+            body = await res.body.json()
+          } else if (res.headers['content-type'] === 'text/plain') {
+            body = await res.body.text()
+          } else {
+            res.body.resume()
+            // not interested in the errors
+            res.body.on('error', () => {})
+          }
+
           // TODO try again if it fails
+          app.log.warn({ item, statusCode: res.statusCode, body }, 'callback unsuccessful')
         }
-        app.log.log({ callbackUrl, method }, 'callback!')
       } catch (err) {
-        app.log.error(err)
+        app.log.error({ err })
+        // TODO try again if it fails
       }
     }
 

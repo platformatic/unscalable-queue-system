@@ -9,7 +9,9 @@ declare interface Item {
     callbackUrl: string;
     method: string;
     body?: string | null;
-    headers?: string | null;
+    headers?: {
+        [name: string]: any;
+    } | null;
     sentAt?: string | null;
     createdAt: string;
     updatedAt: string;

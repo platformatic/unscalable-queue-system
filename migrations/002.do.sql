@@ -8,7 +8,7 @@ CREATE TABLE items (
   /* add some validations, this should be an enum */
   method VARCHAR(10) NOT NULL,
   body TEXT,
-  headers TEXT,
+  headers JSON,
   sent_at TIMESTAMP,
   created_at TIMESTAMP NOT NULL,
   updated_at TIMESTAMP NOT NULL

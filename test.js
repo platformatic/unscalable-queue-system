@@ -79,13 +79,90 @@ test('happy path', async ({ teardown, equal, plan, same }) => {
       message: 'HELLO FOLKS!'
     })
     const now = Date.now()
+    const query = `
+      mutation($body: String!, $queueId: ID, $callbackUrl: String!) {
+        saveItem(input: { queueId: $queueId, callbackUrl: $callbackUrl, method: "POST", headers: "{ \\"content-type\\": \\"application/json\\" }", body: $body  }) {
+          id
+          when
+        }
+      }
+    `
+
+    const res = await server.app.inject({
+      method: 'POST',
+      url: '/graphql',
+      payload: {
+        query,
+        variables: {
+          body: msg,
+          queueId,
+          callbackUrl: targetUrl
+        }
+      }
+    })
+    const body = res.json()
+    equal(res.statusCode, 200)
+
+    const { data } = body
+    const when = new Date(data.saveItem.when)
+    equal(when.getTime() - now >= 0, true)
+  }
+
+  await p
+})
+
+test('`text plain` content type', async ({ teardown, equal, plan, same }) => {
+  plan(5)
+  const ee = new EventEmitter()
+  const { config, filename } = await getConfig()
+  const server = await buildServer(config)
+  teardown(() => server.stop())
+  teardown(() => rm(filename))
+
+  const target = Fastify()
+  target.post('/', async (req, reply) => {
+    same(req.body, 'HELLO FOLKS!', 'message is equal')
+    ee.emit('called')
+    return { ok: true }
+  })
+
+  teardown(() => target.close())
+  await target.listen({ port: 0 })
+  const targetUrl = `http://${target.server.address().address}:${target.server.address().port}`
+
+  let queueId
+  {
+    const res = await server.app.inject({
+      method: 'POST',
+      url: '/graphql',
+      payload: {
+        query: `
+          mutation {
+            saveQueue(input: { name: "test" }) {
+              id
+            }
+          }
+        `
+      }
+    })
+    equal(res.statusCode, 200)
+    const body = res.json()
+    const { data } = body
+    queueId = data.saveQueue.id
+    equal(queueId, '1')
+  }
+
+  const p = once(ee, 'called')
+  {
+    const msg = 'HELLO FOLKS!'
+    const now = Date.now()
     const res = await server.app.inject({
       method: 'POST',
       url: '/graphql',
       payload: {
         query: `
           mutation($body: String!, $queueId: ID, $callbackUrl: String!) {
-            saveItem(input: { queueId: $queueId, callbackUrl: $callbackUrl, method: "POST", body: $body }) {
+            saveItem(input: { queueId: $queueId, callbackUrl: $callbackUrl, method: "POST", body: $body, headers: "{ \\"content-type\\": \\"text/plain\\" }" } ) {
               id
               when
             }
