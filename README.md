@@ -5,6 +5,14 @@ after a given time.
 
 ![Architecture](./architecture.png)
 
+## TODO
+
+* [x] support multiple content-types
+* [ ] add tests for callbacks in the future
+* [ ] implement at-least-once semantics / retry if target fails
+* [ ] cron job capability / repeat
+* [ ] authorization
+
 ## License
 
 Apache 2.0
