@@ -9,10 +9,12 @@ after a given time.
 
 * [x] support multiple content-types
 * [x] add tests for callbacks in the future
-* [ ] implement at-least-once semantics / retry if target fails
+* [x] implement at-least-once semantics / retry if target fails
 * [ ] cron job capability / repeat
 * [ ] authorization
 * [ ] Dead letter endpoint
+* [ ] implement batching (call endpoints in parallel)
+* [ ] 100% code coverage
 
 ## License
 
