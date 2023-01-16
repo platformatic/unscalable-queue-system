@@ -49,7 +49,7 @@ test('happy path', async ({ teardown, equal, plan, same }) => {
 
   teardown(() => target.close())
   await target.listen({ port: 0 })
-  const targetUrl = `http://${target.server.address().address}:${target.server.address().port}`
+  const targetUrl = `http://localhost:${target.server.address().port}`
 
   let queueId
   {
@@ -128,7 +128,7 @@ test('`text plain` content type', async ({ teardown, equal, plan, same }) => {
 
   teardown(() => target.close())
   await target.listen({ port: 0 })
-  const targetUrl = `http://${target.server.address().address}:${target.server.address().port}`
+  const targetUrl = `http://localhost:${target.server.address().port}`
 
   let queueId
   {
@@ -203,7 +203,7 @@ test('future when', async ({ teardown, equal, plan, same }) => {
 
   teardown(() => target.close())
   await target.listen({ port: 0 })
-  const targetUrl = `http://${target.server.address().address}:${target.server.address().port}`
+  const targetUrl = `http://localhost:${target.server.address().port}`
 
   let queueId
   {
