@@ -22,7 +22,7 @@ function getFilename () {
 }
 
 async function getConfig () {
-  const config = JSON.parse(await readFile(join(__dirname, './platformatic.db.json'), 'utf8'))
+  const config = JSON.parse(await readFile(join(__dirname, '../platformatic.db.json'), 'utf8'))
   config.server.port = 0
   config.server.logger = false
   const filename = getFilename()

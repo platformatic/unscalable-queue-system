@@ -1,7 +1,7 @@
 {
   "scripts": {
     "start": "platformatic db start",
-    "test": "c8 tap --no-coverage test.js"
+    "test": "c8 tap --no-coverage test/*.js"
   },
   "devDependencies": {
     "fastify": "^4.10.2",
