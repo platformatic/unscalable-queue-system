@@ -8,6 +8,8 @@ on:
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
+    environment: 
+      name: development
     steps:
       - name: Checkout application project repository
         uses: actions/checkout@v3
@@ -24,4 +26,5 @@ jobs:
           PLT_SERVER_LOGGER_LEVEL: info 
           PORT: 3042 
           PLT_SERVER_HOSTNAME: 127.0.0.1 
+          PLT_ADMIN_SECRET: ${{ secrets.PLT_ADMIN_SECRET }}
 
