@@ -2,7 +2,7 @@
 'use strict'
 
 const { request } = require('undici')
-const backoffGenerator = require('./lib/backoff')
+const { computeBackoff } = require('./lib/backoff')
 
 /** @param {import('fastify').FastifyInstance} app */
 module.exports = async function (app) {
@@ -42,7 +42,7 @@ module.exports = async function (app) {
       }
     })
 
-    const [next] = await app.platformatic.entities.item.find({
+    let [next] = await app.platformatic.entities.item.find({
       where: {
         when: {
           gt: now
@@ -60,32 +60,39 @@ module.exports = async function (app) {
       // We must JSON.parse(item.headers) because SQLite store JSON
       // as strings.
       const headers = item.headers ? JSON.parse(item.headers) : { 'content-type': 'application/json' }
-      const backoff = backoffGenerator({ maxRetries })
 
-      try {
-        while (true) {
-          let delay = backoff.next().value
-          const succesful = await makeCallback(callbackUrl, method, headers, body)
-          if (succesful) {
-            await app.platformatic.entities.item.save({
-              input: {
-                id: item.id,
-                sentAt: new Date().getTime()
-              }
-            })
-            app.log.info({ callbackUrl, method }, 'callback succesful!')
-            break
-          }
-        }
-      } catch (err) {
-        app.log.warn({ item, statusCode: res.statusCode, body }, 'callback failed')
+      const succesful = await makeCallback(callbackUrl, method, headers, body)
+      if (succesful) {
         await app.platformatic.entities.item.save({
           input: {
             id: item.id,
-            sentAt: new Date().getTime(),
-            failed: true
+            sentAt: new Date().getTime()
           }
         })
+        app.log.info({ callbackUrl, method }, 'callback succesful!')
+      } else {
+        const backoff = computeBackoff({ retries: item.retries, maxRetries })
+        if (!backoff) {
+          app.log.warn({ item, statusCode: res.statusCode, body }, 'callback failed')
+          await app.platformatic.entities.item.save({
+            input: {
+              id: item.id,
+              sentAt: new Date().getTime(),
+              failed: true
+            }
+          })
+        } else {
+          app.log.info({ callbackUrl, method }, 'callback failed, scheduling retry!')
+          const newItem = {
+            id: item.id,
+            retries: backoff.retries,
+            when: new Date(Date.now() + backoff.waitFor).getTime()
+          }
+          await app.platformatic.entities.item.save({ input: newItem })
+          if (!next || next.when > newItem.when) {
+            next = newItem
+          }
+        }
       }
     }
 
