@@ -2,7 +2,7 @@
 'use strict'
 
 const { request } = require('undici')
-const backoffGenerator = require('./lib/backoff')
+const { backoffGenerator } = require('./lib/backoff')
 
 /** @param {import('fastify').FastifyInstance} app */
 module.exports = async function (app) {
