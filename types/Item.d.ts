@@ -15,6 +15,8 @@ declare interface Item {
     sentAt?: string | null;
     createdAt: string;
     updatedAt: string;
+    failed: string;
+    retries: number;
 }
 
 export { Item };
