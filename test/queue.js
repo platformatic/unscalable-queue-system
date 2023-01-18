@@ -15,6 +15,8 @@ setGlobalDispatcher(new Agent({
   keepAliveMaxTimeout: 10
 }))
 
+const adminSecret = 'admin-secret'
+
 let count = 0
 
 function getFilename () {
@@ -29,6 +31,7 @@ async function getConfig () {
   config.core.connectionString = `sqlite://${filename}`
   config.migrations.autoApply = true
   config.types.autogenerate = false
+  config.authorization.adminSecret = adminSecret
   return { config, filename }
 }
 
@@ -56,6 +59,9 @@ test('happy path', async ({ teardown, equal, plan, same }) => {
     const res = await server.app.inject({
       method: 'POST',
       url: '/graphql',
+      headers: {
+        'X-PLATFORMATIC-ADMIN-SECRET': adminSecret
+      },
       payload: {
         query: `
           mutation {
@@ -91,8 +97,14 @@ test('happy path', async ({ teardown, equal, plan, same }) => {
     const res = await server.app.inject({
       method: 'POST',
       url: '/graphql',
+      headers: {
+        'X-PLATFORMATIC-ADMIN-SECRET': adminSecret
+      },
       payload: {
         query,
+        headers: {
+          'X-PLATFORMATIC-ADMIN-SECRET': adminSecret
+        },
         variables: {
           body: msg,
           queueId,
@@ -135,6 +147,9 @@ test('`text plain` content type', async ({ teardown, equal, plan, same }) => {
     const res = await server.app.inject({
       method: 'POST',
       url: '/graphql',
+      headers: {
+        'X-PLATFORMATIC-ADMIN-SECRET': adminSecret
+      },
       payload: {
         query: `
           mutation {
@@ -159,6 +174,9 @@ test('`text plain` content type', async ({ teardown, equal, plan, same }) => {
     const res = await server.app.inject({
       method: 'POST',
       url: '/graphql',
+      headers: {
+        'X-PLATFORMATIC-ADMIN-SECRET': adminSecret
+      },
       payload: {
         query: `
           mutation($body: String!, $queueId: ID, $callbackUrl: String!) {
@@ -210,6 +228,9 @@ test('future when', async ({ teardown, equal, plan, same }) => {
     const res = await server.app.inject({
       method: 'POST',
       url: '/graphql',
+      headers: {
+        'X-PLATFORMATIC-ADMIN-SECRET': adminSecret
+      },
       payload: {
         query: `
           mutation {
@@ -247,6 +268,9 @@ test('future when', async ({ teardown, equal, plan, same }) => {
     const res = await server.app.inject({
       method: 'POST',
       url: '/graphql',
+      headers: {
+        'X-PLATFORMATIC-ADMIN-SECRET': adminSecret
+      },
       payload: {
         query,
         variables: {
@@ -266,4 +290,66 @@ test('future when', async ({ teardown, equal, plan, same }) => {
 
   const [calledAt] = await p
   equal(calledAt - now >= 1000, true)
+})
+
+test('only admins can write', async ({ teardown, equal, plan, same }) => {
+  plan(4)
+  const ee = new EventEmitter()
+  const { config, filename } = await getConfig()
+  const server = await buildServer(config)
+  teardown(() => server.stop())
+  teardown(() => rm(filename))
+
+  const targetUrl = `http://localhost:4242`
+
+  let queueId
+  {
+    const res = await server.app.inject({
+      method: 'POST',
+      url: '/graphql',
+      payload: {
+        query: `
+          mutation {
+            saveQueue(input: { name: "test" }) {
+              id
+            }
+          }
+        `
+      }
+    })
+    equal(res.statusCode, 200)
+    const body = res.json()
+    equal(body.errors[0].message, 'operation not allowed')
+  }
+
+  {
+    const msg = JSON.stringify({
+      message: 'HELLO FOLKS!'
+    })
+    const now = Date.now()
+    const query = `
+      mutation($body: String!, $queueId: ID, $callbackUrl: String!) {
+        saveItem(input: { queueId: $queueId, callbackUrl: $callbackUrl, method: "POST", headers: "{ \\"content-type\\": \\"application/json\\" }", body: $body  }) {
+          id
+          when
+        }
+      }
+    `
+
+    const res = await server.app.inject({
+      method: 'POST',
+      url: '/graphql',
+      payload: {
+        query,
+        variables: {
+          body: msg,
+          queueId: 1,
+          callbackUrl: 'http://localhost:4242'
+        }
+      }
+    })
+    const body = res.json()
+    equal(res.statusCode, 200)
+    equal(body.errors[0].message, 'operation not allowed')
+  }
 })

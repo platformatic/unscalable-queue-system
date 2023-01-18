@@ -16,6 +16,7 @@ setGlobalDispatcher(new Agent({
 }))
 
 let count = 0
+const adminSecret = 'admin-secret'
 
 function getFilename () {
   return join(tmpdir(), `test-${process.pid}-${count++}.db`)
@@ -29,6 +30,7 @@ async function getConfig () {
   config.core.connectionString = `sqlite://${filename}`
   config.migrations.autoApply = true
   config.types.autogenerate = false
+  config.authorization.adminSecret = adminSecret
   return { config, filename }
 }
 
@@ -60,6 +62,9 @@ test('retries on failure', async ({ teardown, equal, plan, same }) => {
     const res = await server.app.inject({
       method: 'POST',
       url: '/graphql',
+      headers: {
+        'X-PLATFORMATIC-ADMIN-SECRET': adminSecret
+      },
       payload: {
         query: `
           mutation {
@@ -95,6 +100,9 @@ test('retries on failure', async ({ teardown, equal, plan, same }) => {
     const res = await server.app.inject({
       method: 'POST',
       url: '/graphql',
+      headers: {
+        'X-PLATFORMATIC-ADMIN-SECRET': adminSecret
+      },
       payload: {
         query,
         variables: {

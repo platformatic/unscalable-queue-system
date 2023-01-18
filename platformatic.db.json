@@ -10,7 +10,24 @@
   "core": {
     "connectionString": "{DATABASE_URL}",
     "graphql": true,
-    "openapi": true
+    "openapi": true,
+    "events": false
+  },
+  "authorization": {
+    "adminSecret": "{PLT_ADMIN_SECRET}",
+    "rules": [{
+      "role": "anonymous",
+      "entity": "queue",
+      "find": false,
+      "save": false,
+      "delete": false
+    }, {
+      "role": "anonymous",
+      "entity": "item",
+      "find": false,
+      "save": false,
+      "delete": false
+    }]
   },
   "migrations": {
     "dir": "migrations"
