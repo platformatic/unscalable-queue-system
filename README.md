@@ -11,7 +11,7 @@ after a given time.
 * [x] add tests for callbacks in the future
 * [x] implement at-least-once semantics / retry if target fails
 * [ ] cron job capability / repeat
-* [ ] authorization
+* [x] authorization
 * [ ] Dead letter endpoint
 * [ ] implement batching (call endpoints in parallel)
 * [ ] 100% code coverage
