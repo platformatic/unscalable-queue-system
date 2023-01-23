@@ -10,7 +10,7 @@ after a given time.
 * [x] support multiple content-types
 * [x] add tests for callbacks in the future
 * [x] implement at-least-once semantics / retry if target fails
-* [ ] cron job capability / repeat
+* [x] cron job capability / repeat
 * [x] authorization
 * [ ] Dead letter endpoint
 * [ ] implement batching (call endpoints in parallel)

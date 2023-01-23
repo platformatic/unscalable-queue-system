@@ -3,6 +3,7 @@
 
 const { request } = require('undici')
 const { computeBackoff } = require('./lib/backoff')
+const cronParser = require('cron-parser')
 
 /** @param {import('fastify').FastifyInstance} app */
 module.exports = async function (app) {
@@ -42,18 +43,6 @@ module.exports = async function (app) {
       }
     })
 
-    let [next] = await app.platformatic.entities.item.find({
-      where: {
-        when: {
-          gt: now
-        },
-        sentAt: {
-          eq: null
-        }
-      },
-      limit: 1
-    })
-
     // TODO run this in parallel
     for (const item of items) {
       const { callbackUrl, method, body } = item
@@ -62,6 +51,8 @@ module.exports = async function (app) {
       const headers = item.headers ? JSON.parse(item.headers) : { 'content-type': 'application/json' }
 
       const succesful = await makeCallback(callbackUrl, method, headers, body)
+
+      // TODO maybe we want to run these in a transaction
       if (succesful) {
         await app.platformatic.entities.item.save({
           input: {
@@ -89,15 +80,43 @@ module.exports = async function (app) {
             when: new Date(Date.now() + backoff.waitFor).getTime()
           }
           await app.platformatic.entities.item.save({ input: newItem })
-          if (!next || next.when > newItem.when) {
-            next = newItem
-          }
         }
+      }
+
+      // let's schedule the next call if it's a cron
+      if (item.cronId) {
+        const [cron] = await app.platformatic.entities.cron.find({ where: { id: { eq: item.cronId } } })
+        const interval = cronParser.parseExpression(cron.schedule)
+        const next = interval.next().getTime()
+        await app.platformatic.entities.item.save({
+          input: {
+            queueId: cron.queueId,
+            when: next,
+            method: cron.method,
+            callbackUrl: cron.callbackUrl,
+            headers: cron.headers,
+            body: cron.body,
+            cronId: cron.id
+          }
+        })
       }
     }
 
+    const [next] = await app.platformatic.entities.item.find({
+      where: {
+        sentAt: {
+          eq: null
+        }
+      },
+      orderBy: [{
+        field: 'when', direction: 'asc'
+      }],
+      limit: 1
+    })
+
     if (next) {
       const delay = next.when - now
+      clearTimeout(timer)
       timer = setTimeout(execute, delay)
     }
   }
@@ -131,6 +150,30 @@ module.exports = async function (app) {
       return false
     }
   }
+
+  app.platformatic.addEntityHooks('cron', {
+    async save (original, args) {
+      // TODO add transactions
+      const input = args.input
+      const schedule = args.input.schedule
+      const interval = cronParser.parseExpression(schedule)
+      const next = interval.next().getTime()
+      const cron = await original(args)
+      await app.platformatic.entities.item.save({
+        ...args,
+        input: {
+          cronId: cron.id,
+          queueId: input.queueId,
+          when: next,
+          callbackUrl: input.callbackUrl,
+          method: input.method,
+          headers: input.headers,
+          body: input.body
+        }
+      })
+      return cron
+    }
+  })
 
   await execute()
 
