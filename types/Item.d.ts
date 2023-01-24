@@ -17,6 +17,7 @@ declare interface Item {
     updatedAt: string;
     failed: string;
     retries: number;
+    cronId?: number | null;
 }
 
 export { Item };
