@@ -1,13 +1,11 @@
 /**
- * Item
- * A Item
+ * Message
+ * A Message
  */
-declare interface Item {
+declare interface Message {
     id?: number;
     queueId: number;
     when: string;
-    callbackUrl: string;
-    method: string;
     body?: string | null;
     headers?: {
         [name: string]: any;
@@ -20,4 +18,4 @@ declare interface Item {
     cronId?: number | null;
 }
 
-export { Item };
+export { Message };

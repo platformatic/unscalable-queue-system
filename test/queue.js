@@ -64,12 +64,15 @@ test('happy path', async ({ teardown, equal, plan, same }) => {
       },
       payload: {
         query: `
-          mutation {
-            saveQueue(input: { name: "test" }) {
+          mutation($callbackUrl: String!) {
+            saveQueue(input: { name: "test", callbackUrl: $callbackUrl, method: "POST" }) {
               id
             }
           }
-        `
+        `,
+        variables: {
+          callbackUrl: targetUrl
+        }
       }
     })
     equal(res.statusCode, 200)
@@ -86,8 +89,8 @@ test('happy path', async ({ teardown, equal, plan, same }) => {
     })
     const now = Date.now()
     const query = `
-      mutation($body: String!, $queueId: ID, $callbackUrl: String!) {
-        saveItem(input: { queueId: $queueId, callbackUrl: $callbackUrl, method: "POST", headers: "{ \\"content-type\\": \\"application/json\\" }", body: $body  }) {
+      mutation($body: String!, $queueId: ID) {
+        saveMessage(input: { queueId: $queueId, headers: "{ \\"content-type\\": \\"application/json\\" }", body: $body  }) {
           id
           when
         }
@@ -102,13 +105,9 @@ test('happy path', async ({ teardown, equal, plan, same }) => {
       },
       payload: {
         query,
-        headers: {
-          'X-PLATFORMATIC-ADMIN-SECRET': adminSecret
-        },
         variables: {
           body: msg,
-          queueId,
-          callbackUrl: targetUrl
+          queueId
         }
       }
     })
@@ -116,7 +115,7 @@ test('happy path', async ({ teardown, equal, plan, same }) => {
     equal(res.statusCode, 200)
 
     const { data } = body
-    const when = new Date(data.saveItem.when)
+    const when = new Date(data.saveMessage.when)
     equal(when.getTime() - now >= 0, true)
   }
 
@@ -152,12 +151,15 @@ test('`text plain` content type', async ({ teardown, equal, plan, same }) => {
       },
       payload: {
         query: `
-          mutation {
-            saveQueue(input: { name: "test" }) {
+          mutation($callbackUrl: String!) {
+            saveQueue(input: { name: "test", callbackUrl: $callbackUrl, method: "POST" }) {
               id
             }
           }
-        `
+        `,
+        variables: {
+          callbackUrl: targetUrl
+        }
       }
     })
     equal(res.statusCode, 200)
@@ -179,8 +181,8 @@ test('`text plain` content type', async ({ teardown, equal, plan, same }) => {
       },
       payload: {
         query: `
-          mutation($body: String!, $queueId: ID, $callbackUrl: String!) {
-            saveItem(input: { queueId: $queueId, callbackUrl: $callbackUrl, method: "POST", body: $body, headers: "{ \\"content-type\\": \\"text/plain\\" }" } ) {
+          mutation($body: String!, $queueId: ID) {
+            saveMessage(input: { queueId: $queueId, body: $body, headers: "{ \\"content-type\\": \\"text/plain\\" }" } ) {
               id
               when
             }
@@ -188,15 +190,14 @@ test('`text plain` content type', async ({ teardown, equal, plan, same }) => {
         `,
         variables: {
           body: msg,
-          queueId,
-          callbackUrl: targetUrl
+          queueId
         }
       }
     })
     const body = res.json()
     equal(res.statusCode, 200)
     const { data } = body
-    const when = new Date(data.saveItem.when)
+    const when = new Date(data.saveMessage.when)
     equal(when.getTime() - now >= 0, true)
   }
 
@@ -233,12 +234,15 @@ test('future when', async ({ teardown, equal, plan, same }) => {
       },
       payload: {
         query: `
-          mutation {
-            saveQueue(input: { name: "test" }) {
+          mutation($callbackUrl: String!) {
+            saveQueue(input: { name: "test", callbackUrl: $callbackUrl, method: "POST" }) {
               id
             }
           }
-        `
+        `,
+        variables: {
+          callbackUrl: targetUrl
+        }
       }
     })
     equal(res.statusCode, 200)
@@ -257,8 +261,8 @@ test('future when', async ({ teardown, equal, plan, same }) => {
     })
     const afterOneSecond = new Date(now + 1000).toISOString()
     const query = `
-      mutation($body: String!, $queueId: ID, $callbackUrl: String!, $when: DateTime!) {
-        saveItem(input: { queueId: $queueId, callbackUrl: $callbackUrl, method: "POST", headers: "{ \\"content-type\\": \\"application/json\\" }", body: $body, when: $when  }) {
+      mutation($body: String!, $queueId: ID, $when: DateTime!) {
+        saveMessage(input: { queueId: $queueId, body: $body, when: $when  }) {
           id
           when
         }
@@ -285,7 +289,7 @@ test('future when', async ({ teardown, equal, plan, same }) => {
     equal(res.statusCode, 200)
 
     const { data } = body
-    equal(data.saveItem.when, afterOneSecond)
+    equal(data.saveMessage.when, afterOneSecond)
   }
 
   const [calledAt] = await p
@@ -309,12 +313,15 @@ test('only admins can write', async ({ teardown, equal, plan, same }) => {
       url: '/graphql',
       payload: {
         query: `
-          mutation {
-            saveQueue(input: { name: "test" }) {
+          mutation($callbackUrl: String!) {
+            saveQueue(input: { name: "test", callbackUrl: $callbackUrl, method: "POST" }) {
               id
             }
           }
-        `
+        `,
+        variables: {
+          callbackUrl: targetUrl
+        }
       }
     })
     equal(res.statusCode, 200)
@@ -328,8 +335,8 @@ test('only admins can write', async ({ teardown, equal, plan, same }) => {
     })
     const now = Date.now()
     const query = `
-      mutation($body: String!, $queueId: ID, $callbackUrl: String!) {
-        saveItem(input: { queueId: $queueId, callbackUrl: $callbackUrl, method: "POST", headers: "{ \\"content-type\\": \\"application/json\\" }", body: $body  }) {
+      mutation($body: String!, $queueId: ID) {
+        saveMessage(input: { queueId: $queueId, body: $body }) {
           id
           when
         }
@@ -343,8 +350,7 @@ test('only admins can write', async ({ teardown, equal, plan, same }) => {
         query,
         variables: {
           body: msg,
-          queueId: 1,
-          callbackUrl: 'http://localhost:4242'
+          queueId: 1
         }
       }
     })
@@ -352,4 +358,86 @@ test('only admins can write', async ({ teardown, equal, plan, same }) => {
     equal(res.statusCode, 200)
     equal(body.errors[0].message, 'operation not allowed')
   }
+})
+
+test('`text plain` content type header in the Queue', async ({ teardown, equal, plan, same }) => {
+  plan(5)
+  const ee = new EventEmitter()
+  const { config, filename } = await getConfig()
+  const server = await buildServer(config)
+  teardown(() => server.stop())
+  teardown(() => rm(filename))
+
+  const target = Fastify()
+  target.post('/', async (req, reply) => {
+    same(req.body, 'HELLO FOLKS!', 'message is equal')
+    ee.emit('called')
+    return { ok: true }
+  })
+
+  teardown(() => target.close())
+  await target.listen({ port: 0 })
+  const targetUrl = `http://localhost:${target.server.address().port}`
+
+  let queueId
+  {
+    const res = await server.app.inject({
+      method: 'POST',
+      url: '/graphql',
+      headers: {
+        'X-PLATFORMATIC-ADMIN-SECRET': adminSecret
+      },
+      payload: {
+        query: `
+          mutation($callbackUrl: String!) {
+            saveQueue(input: { name: "test", callbackUrl: $callbackUrl, method: "POST", headers: "{ \\"content-type\\": \\"text/plain\\" }" }) {
+              id
+            }
+          }
+        `,
+        variables: {
+          callbackUrl: targetUrl
+        }
+      }
+    })
+    equal(res.statusCode, 200)
+    const body = res.json()
+    const { data } = body
+    queueId = data.saveQueue.id
+    equal(queueId, '1')
+  }
+
+  const p = once(ee, 'called')
+  {
+    const msg = 'HELLO FOLKS!'
+    const now = Date.now()
+    const res = await server.app.inject({
+      method: 'POST',
+      url: '/graphql',
+      headers: {
+        'X-PLATFORMATIC-ADMIN-SECRET': adminSecret
+      },
+      payload: {
+        query: `
+          mutation($body: String!, $queueId: ID) {
+            saveMessage(input: { queueId: $queueId, body: $body } ) {
+              id
+              when
+            }
+          }
+        `,
+        variables: {
+          body: msg,
+          queueId
+        }
+      }
+    })
+    const body = res.json()
+    equal(res.statusCode, 200)
+    const { data } = body
+    const when = new Date(data.saveMessage.when)
+    equal(when.getTime() - now >= 0, true)
+  }
+
+  await p
 })

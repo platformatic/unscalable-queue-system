@@ -12,7 +12,7 @@ module.exports = async function (app) {
   // TODO: make this configurable
   const maxRetries = 3
 
-  app.platformatic.addEntityHooks('item', {
+  app.platformatic.addEntityHooks('message', {
     async save (original, { input, ...rest }) {
       if (!input.when) {
         input.when = new Date().getTime() // now
@@ -32,42 +32,60 @@ module.exports = async function (app) {
 
   async function execute () {
     const now = Date.now()
-    const items = await app.platformatic.entities.item.find({
-      where: {
-        when: {
-          lte: now
-        },
-        sentAt: {
-          eq: null
-        }
-      }
-    })
+    const { db, sql } = app.platformatic
+
+    /* Write a join sql query between messages and queue on queue_id column */
+    const messages = await db.query(sql`
+      SELECT  queues.callback_url AS callbackUrl,
+              queues.method as method,
+              messages.body AS body,
+              messages.headers AS headers,
+              messages.retries AS retries,
+              queues.headers AS queueHeaders,
+              messages.\`when\` AS \`when\`,
+              messages.cron_id AS cronId,
+              messages.id AS id
+
+      FROM    messages
+
+      INNER JOIN queues ON messages.queue_id = queues.id
+
+      WHERE messages.sent_at IS NULL
+      AND   messages.\`when\` <= ${now}
+
+      LIMIT 10
+    `)
+
 
     // TODO run this in parallel
-    for (const item of items) {
-      const { callbackUrl, method, body } = item
-      // We must JSON.parse(item.headers) because SQLite store JSON
+    for (const message of messages) {
+      const { callbackUrl, method, body, queueId } = message
+      // We must JSON.parse(message.headers) because SQLite store JSON
       // as strings.
-      const headers = item.headers ? JSON.parse(item.headers) : { 'content-type': 'application/json' }
+      const headers = {
+        ...(message.queueHeaders ? JSON.parse(message.queueHeaders) : {}),
+        ...(message.headers ? JSON.parse(message.headers) : {})
+      }
+      headers['content-type'] ||= 'application/json' 
 
       const succesful = await makeCallback(callbackUrl, method, headers, body)
 
       // TODO maybe we want to run these in a transaction
       if (succesful) {
-        await app.platformatic.entities.item.save({
+        await app.platformatic.entities.message.save({
           input: {
-            id: item.id,
+            id: message.id,
             sentAt: new Date().getTime()
           }
         })
         app.log.info({ callbackUrl, method }, 'callback succesful!')
       } else {
-        const backoff = computeBackoff({ retries: item.retries, maxRetries })
+        const backoff = computeBackoff({ retries: message.retries, maxRetries })
         if (!backoff) {
-          app.log.warn({ item, statusCode: res.statusCode, body }, 'callback failed')
-          await app.platformatic.entities.item.save({
+          app.log.warn({ message, body }, 'callback failed')
+          await app.platformatic.entities.message.save({
             input: {
-              id: item.id,
+              id: message.id,
               sentAt: new Date().getTime(),
               failed: true
             }
@@ -75,25 +93,23 @@ module.exports = async function (app) {
         } else {
           app.log.info({ callbackUrl, method }, 'callback failed, scheduling retry!')
           const newItem = {
-            id: item.id,
+            id: message.id,
             retries: backoff.retries,
             when: new Date(Date.now() + backoff.waitFor).getTime()
           }
-          await app.platformatic.entities.item.save({ input: newItem })
+          await app.platformatic.entities.message.save({ input: newItem })
         }
       }
 
       // let's schedule the next call if it's a cron
-      if (item.cronId) {
-        const [cron] = await app.platformatic.entities.cron.find({ where: { id: { eq: item.cronId } } })
+      if (message.cronId) {
+        const [cron] = await app.platformatic.entities.cron.find({ where: { id: { eq: message.cronId } } })
         const interval = cronParser.parseExpression(cron.schedule)
         const next = interval.next().getTime()
-        await app.platformatic.entities.item.save({
+        await app.platformatic.entities.message.save({
           input: {
             queueId: cron.queueId,
             when: next,
-            method: cron.method,
-            callbackUrl: cron.callbackUrl,
             headers: cron.headers,
             body: cron.body,
             cronId: cron.id
@@ -102,7 +118,7 @@ module.exports = async function (app) {
       }
     }
 
-    const [next] = await app.platformatic.entities.item.find({
+    const [next] = await app.platformatic.entities.message.find({
       where: {
         sentAt: {
           eq: null
@@ -121,7 +137,7 @@ module.exports = async function (app) {
     }
   }
 
-  async function makeCallback (callbackUrl, method, headers, body, item) {
+  async function makeCallback (callbackUrl, method, headers, body, message) {
     try {
       const res = await request(callbackUrl, {
         method,
@@ -142,9 +158,10 @@ module.exports = async function (app) {
           res.body.on('error', () => {})
         }
 
-        app.log.warn({ item, statusCode: res.statusCode, body }, 'callback unsuccessful, maybe retry')
+        app.log.warn({ message, statusCode: res.statusCode, body }, 'callback unsuccessful, maybe retry')
         return false
       }
+      /* c8 ignore next 4 */
     } catch (err) {
       app.log.warn({ err }, 'error processing callback')
       return false
@@ -159,14 +176,12 @@ module.exports = async function (app) {
       const interval = cronParser.parseExpression(schedule)
       const next = interval.next().getTime()
       const cron = await original(args)
-      await app.platformatic.entities.item.save({
+      await app.platformatic.entities.message.save({
         ...args,
         input: {
           cronId: cron.id,
           queueId: input.queueId,
           when: next,
-          callbackUrl: input.callbackUrl,
-          method: input.method,
           headers: input.headers,
           body: input.body
         }

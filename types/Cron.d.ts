@@ -8,8 +8,6 @@ declare interface Cron {
     schedule: string;
     createdAt: string;
     updatedAt: string;
-    callbackUrl: string;
-    method: string;
     body?: string | null;
     headers?: {
         [name: string]: any;
