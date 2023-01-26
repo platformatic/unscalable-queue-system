@@ -23,7 +23,7 @@
       "delete": false
     }, {
       "role": "anonymous",
-      "entity": "item",
+      "entity": "message",
       "find": false,
       "save": false,
       "delete": false

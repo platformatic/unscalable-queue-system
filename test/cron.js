@@ -66,12 +66,15 @@ test('happy path', async ({ teardown, equal, plan, same }) => {
       },
       payload: {
         query: `
-          mutation {
-            saveQueue(input: { name: "test" }) {
+          mutation($callbackUrl: String!) {
+            saveQueue(input: { name: "test", callbackUrl: $callbackUrl, method: "POST" }) {
               id
             }
           }
-        `
+        `,
+        variables: {
+          callbackUrl: targetUrl
+        }
       }
     })
     equal(res.statusCode, 200)
@@ -90,8 +93,8 @@ test('happy path', async ({ teardown, equal, plan, same }) => {
     })
     const now = Date.now()
     const query = `
-      mutation($body: String!, $queueId: ID, $callbackUrl: String!, $schedule: String!) {
-        saveCron(input: { queueId: $queueId, callbackUrl: $callbackUrl, method: "POST", headers: "{ \\"content-type\\": \\"application/json\\" }", body: $body, schedule: $schedule }) {
+      mutation($body: String!, $queueId: ID, $schedule: String!) {
+        saveCron(input: { queueId: $queueId, headers: "{ \\"content-type\\": \\"application/json\\" }", body: $body, schedule: $schedule }) {
           id
           schedule
         }
@@ -109,7 +112,6 @@ test('happy path', async ({ teardown, equal, plan, same }) => {
         variables: {
           body: msg,
           queueId,
-          callbackUrl: targetUrl,
           schedule
         }
       }

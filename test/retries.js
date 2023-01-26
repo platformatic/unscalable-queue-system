@@ -67,12 +67,15 @@ test('retries on failure', async ({ teardown, equal, plan, same }) => {
       },
       payload: {
         query: `
-          mutation {
-            saveQueue(input: { name: "test" }) {
+          mutation($callbackUrl: String!) {
+            saveQueue(input: { name: "test", callbackUrl: $callbackUrl, method: "POST" }) {
               id
             }
           }
-        `
+        `,
+        variables: {
+          callbackUrl: targetUrl
+        }
       }
     })
     equal(res.statusCode, 200)
@@ -89,8 +92,8 @@ test('retries on failure', async ({ teardown, equal, plan, same }) => {
     })
     const now = Date.now()
     const query = `
-      mutation($body: String!, $queueId: ID, $callbackUrl: String!) {
-        saveItem(input: { queueId: $queueId, callbackUrl: $callbackUrl, method: "POST", headers: "{ \\"content-type\\": \\"application/json\\" }", body: $body  }) {
+      mutation($body: String!, $queueId: ID) {
+        saveMessage(input: { queueId: $queueId, body: $body }) {
           id
           when
         }
@@ -107,8 +110,7 @@ test('retries on failure', async ({ teardown, equal, plan, same }) => {
         query,
         variables: {
           body: msg,
-          queueId,
-          callbackUrl: targetUrl
+          queueId
         }
       }
     })
@@ -116,7 +118,7 @@ test('retries on failure', async ({ teardown, equal, plan, same }) => {
     equal(res.statusCode, 200)
 
     const { data } = body
-    const when = new Date(data.saveItem.when)
+    const when = new Date(data.saveMessage.when)
     equal(when.getTime() - now >= 0, true)
   }
 

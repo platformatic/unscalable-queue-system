@@ -7,6 +7,11 @@ declare interface Queue {
     name: string;
     createdAt: string;
     updatedAt: string;
+    callbackUrl: string;
+    method: string;
+    headers?: {
+        [name: string]: any;
+    } | null;
 }
 
 export { Queue };
