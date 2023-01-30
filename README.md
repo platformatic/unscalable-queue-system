@@ -12,7 +12,7 @@ after a given time.
 * [x] implement at-least-once semantics / retry if target fails
 * [x] cron job capability / repeat
 * [x] authorization
-* [ ] Dead letter endpoint
+* [x] Dead letter endpoint
 * [ ] implement batching (call endpoints in parallel)
 * [ ] 100% code coverage
 * [ ] Split plugin.js into multiple files
