@@ -9,8 +9,6 @@ const cronParser = require('cron-parser')
 module.exports = async function (app) {
   let timer = null
   let nextTime = -1
-  // TODO: make this configurable
-  const maxRetries = 3
 
   app.platformatic.addEntityHooks('message', {
     async save (original, { input, ...rest }) {
@@ -42,6 +40,8 @@ module.exports = async function (app) {
               messages.headers AS headers,
               messages.retries AS retries,
               queues.headers AS queueHeaders,
+              queues.max_retries AS maxRetries,
+              queues.dead_letter_queue_id AS deadLetterQueueId,
               messages.\`when\` AS \`when\`,
               messages.cron_id AS cronId,
               messages.id AS id
@@ -59,7 +59,7 @@ module.exports = async function (app) {
 
     // TODO run this in parallel
     for (const message of messages) {
-      const { callbackUrl, method, body, queueId } = message
+      const { callbackUrl, method, body, queueId, maxRetries, deadLetterQueueId } = message
       // We must JSON.parse(message.headers) because SQLite store JSON
       // as strings.
       const headers = {
@@ -90,6 +90,15 @@ module.exports = async function (app) {
               failed: true
             }
           })
+          if (deadLetterQueueId) {
+            await app.platformatic.entities.message.save({
+              input: {
+                queueId: deadLetterQueueId,
+                body: message.body,
+                headers: message.headers
+              }
+            })
+          }
         } else {
           app.log.info({ callbackUrl, method }, 'callback failed, scheduling retry!')
           const newItem = {
