@@ -12,6 +12,8 @@ declare interface Queue {
     headers?: {
         [name: string]: any;
     } | null;
+    deadLetterQueueId?: number | null;
+    maxRetries: number;
 }
 
 export { Queue };

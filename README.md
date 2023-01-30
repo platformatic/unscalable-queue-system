@@ -15,6 +15,8 @@ after a given time.
 * [ ] Dead letter endpoint
 * [ ] implement batching (call endpoints in parallel)
 * [ ] 100% code coverage
+* [ ] Split plugin.js into multiple files
+* [ ] Refactor tests so that there is little repetition
 
 ## License
 
