@@ -13,7 +13,7 @@ after a given time.
 * [x] cron job capability / repeat
 * [x] authorization
 * [x] Dead letter endpoint
-* [ ] implement batching (call endpoints in parallel)
+* [x] implement batching (call endpoints in parallel)
 * [ ] 100% code coverage
 * [x] Split plugin.js into multiple files
 * [ ] Refactor tests so that there is little repetition
