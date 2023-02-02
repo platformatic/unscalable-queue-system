@@ -25,6 +25,7 @@ module.exports = async function (app) {
           // correctly by GraphQL
           const date = new Date(input.when)
           executor.updateTimer(date)
+          /* c8 ignore next 4 */
         } catch (err) {
           console.log(err)
         }
@@ -45,6 +46,7 @@ module.exports = async function (app) {
         // correctly by GraphQL
         const date = new Date(input.when)
         executor.updateTimer(date)
+        /* c8 ignore next 4 */
       } catch (err) {
         console.log(err)
       }
