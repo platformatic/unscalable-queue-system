@@ -126,7 +126,6 @@ test('happy path', async ({ teardown, equal, plan, same, pass }) => {
     equal(res.statusCode, 200)
   }
 
-  console.log('await p')
   await p
   await new Promise(resolve => setImmediate(resolve))
 })
