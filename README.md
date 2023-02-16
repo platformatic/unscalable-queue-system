@@ -18,6 +18,7 @@ after a given time.
 * [x] Split plugin.js into multiple files
 * [ ] Refactor tests so that there is little repetition
 * [ ] Investigate remaining TODOs
+* [ ] Add a message limit
 
 ## License
 
