@@ -20,15 +20,8 @@ module.exports = async function (app) {
       const res = await original({ inputs, ...rest })
 
       for (const input of inputs) {
-        try {
-          // TODO investigate why if this throw the Error is not logged
-          // correctly by GraphQL
-          const date = new Date(input.when)
-          executor.updateTimer(date)
-          /* c8 ignore next 4 */
-        } catch (err) {
-          console.log(err)
-        }
+        const date = new Date(input.when)
+        executor.updateTimer(date)
       }
 
       return res
@@ -41,15 +34,8 @@ module.exports = async function (app) {
 
       const res = await original({ input, ...rest })
 
-      try {
-        // TODO investigate why if this throw the Error is not logged
-        // correctly by GraphQL
-        const date = new Date(input.when)
-        executor.updateTimer(date)
-        /* c8 ignore next 4 */
-      } catch (err) {
-        console.log(err)
-      }
+      const date = new Date(input.when)
+      executor.updateTimer(date)
 
       return res
     }
