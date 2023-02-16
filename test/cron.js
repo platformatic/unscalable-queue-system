@@ -35,8 +35,6 @@ async function getConfig () {
   return { config, filename }
 }
 
-// TODO add test with invalid cron string
-
 test('happy path', async ({ teardown, equal, plan, same }) => {
   plan(6)
   const ee = new EventEmitter()
@@ -141,4 +139,79 @@ test('happy path', async ({ teardown, equal, plan, same }) => {
 
   const p2 = once(ee, 'called')
   await p2
+})
+
+test('invalid cron expression', async ({ teardown, equal, plan, same }) => {
+  plan(4)
+  const ee = new EventEmitter()
+  const { config, filename } = await getConfig()
+  const server = await buildServer(config)
+  teardown(() => server.stop())
+  teardown(() => rm(filename))
+
+  const targetUrl = `http://localhost:4242`
+
+  let queueId
+  {
+    const res = await server.app.inject({
+      method: 'POST',
+      url: '/graphql',
+      headers: {
+        'X-PLATFORMATIC-ADMIN-SECRET': adminSecret
+      },
+      payload: {
+        query: `
+          mutation($callbackUrl: String!) {
+            saveQueue(input: { name: "test", callbackUrl: $callbackUrl, method: "POST" }) {
+              id
+            }
+          }
+        `,
+        variables: {
+          callbackUrl: targetUrl
+        }
+      }
+    })
+    equal(res.statusCode, 200)
+    const body = res.json()
+    const { data } = body
+    queueId = data.saveQueue.id
+    equal(queueId, '1')
+  }
+
+  const schedule = 'hello world'
+
+  {
+    const msg = JSON.stringify({
+      message: 'HELLO FOLKS!'
+    })
+    const now = Date.now()
+    const query = `
+      mutation($body: String!, $queueId: ID, $schedule: String!) {
+        saveCron(input: { queueId: $queueId, headers: "{ \\"content-type\\": \\"application/json\\" }", body: $body, schedule: $schedule }) {
+          id
+          schedule
+        }
+      }
+    `
+
+    const res = await server.app.inject({
+      method: 'POST',
+      url: '/graphql',
+      headers: {
+        'X-PLATFORMATIC-ADMIN-SECRET': adminSecret
+      },
+      payload: {
+        query,
+        variables: {
+          body: msg,
+          queueId,
+          schedule
+        }
+      }
+    })
+    const body = res.json()
+    equal(res.statusCode, 200)
+    same(body.errors[0].message, 'Invalid cron expression')
+  }
 })
