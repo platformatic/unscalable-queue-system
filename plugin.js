@@ -1,8 +1,6 @@
 /// <reference path="./global.d.ts" />
 'use strict'
 
-const { request } = require('undici')
-const cronParser = require('cron-parser')
 const cronPlugin = require('./lib/cron')
 const Executor = require('./lib/executor')
 
@@ -26,7 +24,7 @@ module.exports = async function (app) {
 
       return res
     },
-    
+
     async save (original, { input, ...rest }) {
       if (!input.when) {
         input.when = new Date().getTime() // now

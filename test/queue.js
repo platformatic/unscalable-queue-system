@@ -298,15 +298,13 @@ test('future when', async ({ teardown, equal, plan, same }) => {
 
 test('only admins can write', async ({ teardown, equal, plan, same }) => {
   plan(4)
-  const ee = new EventEmitter()
   const { config, filename } = await getConfig()
   const server = await buildServer(config)
   teardown(() => server.stop())
   teardown(() => rm(filename))
 
-  const targetUrl = `http://localhost:4242`
+  const targetUrl = 'http://localhost:4242'
 
-  let queueId
   {
     const res = await server.app.inject({
       method: 'POST',
@@ -333,7 +331,6 @@ test('only admins can write', async ({ teardown, equal, plan, same }) => {
     const msg = JSON.stringify({
       message: 'HELLO FOLKS!'
     })
-    const now = Date.now()
     const query = `
       mutation($body: String!, $queueId: ID) {
         saveMessage(input: { queueId: $queueId, body: $body }) {

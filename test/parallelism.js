@@ -5,7 +5,7 @@ const { buildServer } = require('@platformatic/db')
 const { join } = require('path')
 const { readFile, rm } = require('fs/promises')
 const { tmpdir } = require('os')
-const { once, EventEmitter, on } = require('events')
+const { once, EventEmitter } = require('events')
 const Fastify = require('fastify')
 
 const { setGlobalDispatcher, Agent } = require('undici')
@@ -55,7 +55,7 @@ test('happy path', async ({ teardown, equal, plan, same, pass }) => {
     } else {
       ee.emit('called')
     }
-    
+
     pass('request completed')
     return { ok: true }
   })
@@ -93,7 +93,6 @@ test('happy path', async ({ teardown, equal, plan, same, pass }) => {
   }
 
   {
-    const now = Date.now()
     const query = `
       mutation($messages: [MessageInput]!) {
         insertMessages(inputs: $messages) {
@@ -122,7 +121,6 @@ test('happy path', async ({ teardown, equal, plan, same, pass }) => {
         }
       }
     })
-    const body = res.json()
     equal(res.statusCode, 200)
   }
 
