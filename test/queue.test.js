@@ -1,33 +1,11 @@
 'use strict'
 
-require('./helper')
+const { getConfig, adminSecret } = require('./helper')
 const { test } = require('tap')
 const { buildServer } = require('@platformatic/db')
-const { join } = require('path')
-const { readFile, rm } = require('fs/promises')
-const { tmpdir } = require('os')
+const { rm } = require('fs/promises')
 const { once, EventEmitter } = require('events')
 const Fastify = require('fastify')
-
-const adminSecret = 'admin-secret'
-
-let count = 0
-
-function getFilename () {
-  return join(tmpdir(), `test-${process.pid}-${count++}.db`)
-}
-
-async function getConfig () {
-  const config = JSON.parse(await readFile(join(__dirname, '../platformatic.db.json'), 'utf8'))
-  config.server.port = 0
-  config.server.logger = false
-  const filename = getFilename()
-  config.core.connectionString = `sqlite://${filename}`
-  config.migrations.autoApply = true
-  config.types.autogenerate = false
-  config.authorization.adminSecret = adminSecret
-  return { config, filename }
-}
 
 test('happy path', async ({ teardown, equal, plan, same }) => {
   plan(5)
