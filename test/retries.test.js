@@ -1,5 +1,6 @@
 'use strict'
 
+require('./helper')
 const { test } = require('tap')
 const { buildServer } = require('@platformatic/db')
 const { join } = require('path')
@@ -7,13 +8,6 @@ const { readFile, rm } = require('fs/promises')
 const { tmpdir } = require('os')
 const { once, EventEmitter } = require('events')
 const Fastify = require('fastify')
-
-const { setGlobalDispatcher, Agent } = require('undici')
-
-setGlobalDispatcher(new Agent({
-  keepAliveTimeout: 10,
-  keepAliveMaxTimeout: 10
-}))
 
 let count = 0
 const adminSecret = 'admin-secret'
