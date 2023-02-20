@@ -1,19 +1,14 @@
 'use strict'
 
-const { getConfig, adminSecret } = require('./helper')
+const { buildServer, adminSecret } = require('./helper')
 const { test } = require('tap')
-const { buildServer } = require('@platformatic/db')
-const { rm } = require('fs/promises')
 const { once, EventEmitter } = require('events')
 const Fastify = require('fastify')
 
 test('retries on failure', async ({ teardown, equal, plan, same }) => {
   plan(6)
   const ee = new EventEmitter()
-  const { config, filename } = await getConfig()
-  const server = await buildServer(config)
-  teardown(() => server.stop())
-  teardown(() => rm(filename))
+  const server = await buildServer(teardown)
 
   const target = Fastify()
   let called = 0
@@ -103,10 +98,7 @@ test('retries on failure', async ({ teardown, equal, plan, same }) => {
 test('send a message to the dead letter queue after retries are completed', async ({ teardown, equal, plan, same }) => {
   plan(9)
   const ee = new EventEmitter()
-  const { config, filename } = await getConfig()
-  const server = await buildServer(config)
-  teardown(() => server.stop())
-  teardown(() => rm(filename))
+  const server = await buildServer(teardown)
 
   const target = Fastify()
   target.post('/', async (req, reply) => {
@@ -229,10 +221,7 @@ test('send a message to the dead letter queue after retries are completed', asyn
 test('send a message to the dead letter queue after retries are completed without content-type', async ({ teardown, equal, plan, same }) => {
   plan(9)
   const ee = new EventEmitter()
-  const { config, filename } = await getConfig()
-  const server = await buildServer(config)
-  teardown(() => server.stop())
-  teardown(() => rm(filename))
+  const server = await buildServer(teardown)
 
   const target = Fastify()
   target.post('/', (req, reply) => {
@@ -355,10 +344,7 @@ test('send a message to the dead letter queue after retries are completed withou
 test('send a message to the dead letter queue after retries are completed with text/plain', async ({ teardown, equal, plan, same }) => {
   plan(9)
   const ee = new EventEmitter()
-  const { config, filename } = await getConfig()
-  const server = await buildServer(config)
-  teardown(() => server.stop())
-  teardown(() => rm(filename))
+  const server = await buildServer(teardown)
 
   const target = Fastify()
   target.post('/', (req, reply) => {

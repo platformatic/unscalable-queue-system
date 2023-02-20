@@ -1,19 +1,14 @@
 'use strict'
 
-const { getConfig, adminSecret } = require('./helper')
+const { buildServer, adminSecret } = require('./helper')
 const { test } = require('tap')
-const { buildServer } = require('@platformatic/db')
-const { rm } = require('fs/promises')
 const { once, EventEmitter } = require('events')
 const Fastify = require('fastify')
 
 test('happy path', async ({ teardown, equal, plan, same, pass }) => {
   plan(5)
   const ee = new EventEmitter()
-  const { config, filename } = await getConfig()
-  const server = await buildServer(config)
-  teardown(() => server.stop())
-  teardown(() => rm(filename))
+  const server = await buildServer(teardown)
 
   const target = Fastify()
   const p = once(ee, 'called')

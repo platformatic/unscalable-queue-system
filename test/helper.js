@@ -1,9 +1,10 @@
 'use strict'
 
 const { join } = require('path')
-const { readFile } = require('fs/promises')
+const { readFile, rm } = require('fs/promises')
 const { tmpdir } = require('os')
 const { setGlobalDispatcher, Agent } = require('undici')
+const db = require('@platformatic/db')
 
 setGlobalDispatcher(new Agent({
   keepAliveTimeout: 10,
@@ -29,5 +30,14 @@ async function getConfig () {
   return { config, filename }
 }
 
+async function buildServer (teardown) {
+  const { config, filename } = await getConfig()
+  const server = await db.buildServer(config)
+  teardown(() => server.stop())
+  teardown(() => rm(filename))
+  return server
+}
+
 module.exports.getConfig = getConfig
 module.exports.adminSecret = adminSecret
+module.exports.buildServer = buildServer
