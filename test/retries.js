@@ -213,7 +213,7 @@ test('send a message to the dead letter queue after retries are completed', asyn
     equal(queueId, '2')
   }
 
-  let p = once(ee, 'called')
+  const p = once(ee, 'called')
   {
     const msg = JSON.stringify({
       message: 'HELLO FOLKS!'
@@ -339,7 +339,7 @@ test('send a message to the dead letter queue after retries are completed withou
     equal(queueId, '2')
   }
 
-  let p = once(ee, 'called')
+  const p = once(ee, 'called')
   {
     const msg = JSON.stringify({
       message: 'HELLO FOLKS!'
@@ -465,7 +465,7 @@ test('send a message to the dead letter queue after retries are completed with t
     equal(queueId, '2')
   }
 
-  let p = once(ee, 'called')
+  const p = once(ee, 'called')
   {
     const msg = JSON.stringify({
       message: 'HELLO FOLKS!'

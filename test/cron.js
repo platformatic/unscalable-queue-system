@@ -89,7 +89,6 @@ test('happy path', async ({ teardown, equal, plan, same }) => {
     const msg = JSON.stringify({
       message: 'HELLO FOLKS!'
     })
-    const now = Date.now()
     const query = `
       mutation($body: String!, $queueId: ID, $schedule: String!) {
         saveCron(input: { queueId: $queueId, headers: "{ \\"content-type\\": \\"application/json\\" }", body: $body, schedule: $schedule }) {
@@ -120,7 +119,7 @@ test('happy path', async ({ teardown, equal, plan, same }) => {
     const { data } = body
     equal(data.saveCron.schedule, schedule)
 
-    /* 
+    /*
      * Add items
      *
      *     items {
@@ -143,13 +142,12 @@ test('happy path', async ({ teardown, equal, plan, same }) => {
 
 test('invalid cron expression', async ({ teardown, equal, plan, same }) => {
   plan(4)
-  const ee = new EventEmitter()
   const { config, filename } = await getConfig()
   const server = await buildServer(config)
   teardown(() => server.stop())
   teardown(() => rm(filename))
 
-  const targetUrl = `http://localhost:4242`
+  const targetUrl = 'http://localhost:4242'
 
   let queueId
   {
@@ -185,7 +183,6 @@ test('invalid cron expression', async ({ teardown, equal, plan, same }) => {
     const msg = JSON.stringify({
       message: 'HELLO FOLKS!'
     })
-    const now = Date.now()
     const query = `
       mutation($body: String!, $queueId: ID, $schedule: String!) {
         saveCron(input: { queueId: $queueId, headers: "{ \\"content-type\\": \\"application/json\\" }", body: $body, schedule: $schedule }) {
