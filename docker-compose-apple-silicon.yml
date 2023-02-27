@@ -1,0 +1,8 @@
+version: "3.3"
+services:
+  postgresql:
+    ports:
+      - "5432:5432"
+    image: "arm64v8/postgres:15-alpine"
+    environment:
+      - POSTGRES_PASSWORD=postgres
