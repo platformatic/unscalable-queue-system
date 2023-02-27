@@ -16,7 +16,7 @@ after a given time.
 * [x] implement batching (call endpoints in parallel)
 * [x] 100% code coverage
 * [x] Split plugin.js into multiple files
-* [ ] Refactor tests so that there is little repetition
+* [x] Refactor tests so that there is little repetition
 * [x] Investigate remaining TODOs
 * [ ] Add a message limit
 
