@@ -5,21 +5,6 @@ after a given time.
 
 ![Architecture](./architecture.png)
 
-## TODO
-
-* [x] support multiple content-types
-* [x] add tests for callbacks in the future
-* [x] implement at-least-once semantics / retry if target fails
-* [x] cron job capability / repeat
-* [x] authorization
-* [x] Dead letter endpoint
-* [x] implement batching (call endpoints in parallel)
-* [x] 100% code coverage
-* [x] Split plugin.js into multiple files
-* [x] Refactor tests so that there is little repetition
-* [x] Investigate remaining TODOs
-* [ ] Add a message limit
-
 ## License
 
 Apache 2.0
