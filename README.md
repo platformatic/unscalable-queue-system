@@ -17,7 +17,7 @@ after a given time.
 * [x] 100% code coverage
 * [x] Split plugin.js into multiple files
 * [ ] Refactor tests so that there is little repetition
-* [ ] Investigate remaining TODOs
+* [x] Investigate remaining TODOs
 * [ ] Add a message limit
 
 ## License
