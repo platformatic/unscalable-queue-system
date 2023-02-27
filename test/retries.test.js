@@ -1,222 +1,23 @@
 'use strict'
 
+const { buildServer, adminSecret } = require('./helper')
 const { test } = require('tap')
-const { buildServer } = require('@platformatic/db')
-const { join } = require('path')
-const { readFile, rm } = require('fs/promises')
-const { tmpdir } = require('os')
 const { once, EventEmitter } = require('events')
 const Fastify = require('fastify')
 
-const { setGlobalDispatcher, Agent } = require('undici')
-
-setGlobalDispatcher(new Agent({
-  keepAliveTimeout: 10,
-  keepAliveMaxTimeout: 10
-}))
-
-const adminSecret = 'admin-secret'
-
-let count = 0
-
-function getFilename () {
-  return join(tmpdir(), `test-${process.pid}-${count++}.db`)
-}
-
-async function getConfig () {
-  const config = JSON.parse(await readFile(join(__dirname, '../platformatic.db.json'), 'utf8'))
-  config.server.port = 0
-  config.server.logger = false
-  const filename = getFilename()
-  config.core.connectionString = `sqlite://${filename}`
-  config.migrations.autoApply = true
-  config.types.autogenerate = false
-  config.authorization.adminSecret = adminSecret
-  return { config, filename }
-}
-
-test('happy path', async ({ teardown, equal, plan, same }) => {
-  plan(5)
-  const ee = new EventEmitter()
-  const { config, filename } = await getConfig()
-  const server = await buildServer(config)
-  teardown(() => server.stop())
-  teardown(() => rm(filename))
-
-  const target = Fastify()
-  target.post('/', async (req, reply) => {
-    same(req.body, { message: 'HELLO FOLKS!' }, 'message is equal')
-    ee.emit('called')
-    return { ok: true }
-  })
-
-  teardown(() => target.close())
-  await target.listen({ port: 0 })
-  const targetUrl = `http://localhost:${target.server.address().port}`
-
-  let queueId
-  {
-    const res = await server.app.inject({
-      method: 'POST',
-      url: '/graphql',
-      headers: {
-        'X-PLATFORMATIC-ADMIN-SECRET': adminSecret
-      },
-      payload: {
-        query: `
-          mutation($callbackUrl: String!) {
-            saveQueue(input: { name: "test", callbackUrl: $callbackUrl, method: "POST" }) {
-              id
-            }
-          }
-        `,
-        variables: {
-          callbackUrl: targetUrl
-        }
-      }
-    })
-    equal(res.statusCode, 200)
-    const body = res.json()
-    const { data } = body
-    queueId = data.saveQueue.id
-    equal(queueId, '1')
-  }
-
-  const p = once(ee, 'called')
-  {
-    const msg = JSON.stringify({
-      message: 'HELLO FOLKS!'
-    })
-    const now = Date.now()
-    const query = `
-      mutation($body: String!, $queueId: ID) {
-        saveMessage(input: { queueId: $queueId, headers: "{ \\"content-type\\": \\"application/json\\" }", body: $body  }) {
-          id
-          when
-        }
-      }
-    `
-
-    const res = await server.app.inject({
-      method: 'POST',
-      url: '/graphql',
-      headers: {
-        'X-PLATFORMATIC-ADMIN-SECRET': adminSecret
-      },
-      payload: {
-        query,
-        variables: {
-          body: msg,
-          queueId
-        }
-      }
-    })
-    const body = res.json()
-    equal(res.statusCode, 200)
-
-    const { data } = body
-    const when = new Date(data.saveMessage.when)
-    equal(when.getTime() - now >= 0, true)
-  }
-
-  await p
-})
-
-test('`text plain` content type', async ({ teardown, equal, plan, same }) => {
-  plan(5)
-  const ee = new EventEmitter()
-  const { config, filename } = await getConfig()
-  const server = await buildServer(config)
-  teardown(() => server.stop())
-  teardown(() => rm(filename))
-
-  const target = Fastify()
-  target.post('/', async (req, reply) => {
-    same(req.body, 'HELLO FOLKS!', 'message is equal')
-    ee.emit('called')
-    return { ok: true }
-  })
-
-  teardown(() => target.close())
-  await target.listen({ port: 0 })
-  const targetUrl = `http://localhost:${target.server.address().port}`
-
-  let queueId
-  {
-    const res = await server.app.inject({
-      method: 'POST',
-      url: '/graphql',
-      headers: {
-        'X-PLATFORMATIC-ADMIN-SECRET': adminSecret
-      },
-      payload: {
-        query: `
-          mutation($callbackUrl: String!) {
-            saveQueue(input: { name: "test", callbackUrl: $callbackUrl, method: "POST" }) {
-              id
-            }
-          }
-        `,
-        variables: {
-          callbackUrl: targetUrl
-        }
-      }
-    })
-    equal(res.statusCode, 200)
-    const body = res.json()
-    const { data } = body
-    queueId = data.saveQueue.id
-    equal(queueId, '1')
-  }
-
-  const p = once(ee, 'called')
-  {
-    const msg = 'HELLO FOLKS!'
-    const now = Date.now()
-    const res = await server.app.inject({
-      method: 'POST',
-      url: '/graphql',
-      headers: {
-        'X-PLATFORMATIC-ADMIN-SECRET': adminSecret
-      },
-      payload: {
-        query: `
-          mutation($body: String!, $queueId: ID) {
-            saveMessage(input: { queueId: $queueId, body: $body, headers: "{ \\"content-type\\": \\"text/plain\\" }" } ) {
-              id
-              when
-            }
-          }
-        `,
-        variables: {
-          body: msg,
-          queueId
-        }
-      }
-    })
-    const body = res.json()
-    equal(res.statusCode, 200)
-    const { data } = body
-    const when = new Date(data.saveMessage.when)
-    equal(when.getTime() - now >= 0, true)
-  }
-
-  await p
-})
-
-test('future when', async ({ teardown, equal, plan, same }) => {
+test('retries on failure', async ({ teardown, equal, plan, same }) => {
   plan(6)
-
   const ee = new EventEmitter()
-  const { config, filename } = await getConfig()
-  const server = await buildServer(config)
-  teardown(() => server.stop())
-  teardown(() => rm(filename))
+  const server = await buildServer(teardown)
 
   const target = Fastify()
+  let called = 0
   target.post('/', async (req, reply) => {
     same(req.body, { message: 'HELLO FOLKS!' }, 'message is equal')
-    ee.emit('called', Date.now())
+    ee.emit('called')
+    if (called++ === 0) {
+      throw new Error('first call')
+    }
     return { ok: true }
   })
 
@@ -252,85 +53,12 @@ test('future when', async ({ teardown, equal, plan, same }) => {
     equal(queueId, '1')
   }
 
-  const p = once(ee, 'called')
-  const now = Date.now()
-
+  let p = once(ee, 'called')
   {
     const msg = JSON.stringify({
       message: 'HELLO FOLKS!'
     })
-    const afterOneSecond = new Date(now + 1000).toISOString()
-    const query = `
-      mutation($body: String!, $queueId: ID, $when: DateTime!) {
-        saveMessage(input: { queueId: $queueId, body: $body, when: $when  }) {
-          id
-          when
-        }
-      }
-    `
-
-    const res = await server.app.inject({
-      method: 'POST',
-      url: '/graphql',
-      headers: {
-        'X-PLATFORMATIC-ADMIN-SECRET': adminSecret
-      },
-      payload: {
-        query,
-        variables: {
-          body: msg,
-          queueId,
-          callbackUrl: targetUrl,
-          when: afterOneSecond
-        }
-      }
-    })
-    const body = res.json()
-    equal(res.statusCode, 200)
-
-    const { data } = body
-    equal(data.saveMessage.when, afterOneSecond)
-  }
-
-  const [calledAt] = await p
-  equal(calledAt - now >= 1000, true)
-})
-
-test('only admins can write', async ({ teardown, equal, plan, same }) => {
-  plan(4)
-  const { config, filename } = await getConfig()
-  const server = await buildServer(config)
-  teardown(() => server.stop())
-  teardown(() => rm(filename))
-
-  const targetUrl = 'http://localhost:4242'
-
-  {
-    const res = await server.app.inject({
-      method: 'POST',
-      url: '/graphql',
-      payload: {
-        query: `
-          mutation($callbackUrl: String!) {
-            saveQueue(input: { name: "test", callbackUrl: $callbackUrl, method: "POST" }) {
-              id
-            }
-          }
-        `,
-        variables: {
-          callbackUrl: targetUrl
-        }
-      }
-    })
-    equal(res.statusCode, 200)
-    const body = res.json()
-    equal(body.errors[0].message, 'operation not allowed')
-  }
-
-  {
-    const msg = JSON.stringify({
-      message: 'HELLO FOLKS!'
-    })
+    const now = Date.now()
     const query = `
       mutation($body: String!, $queueId: ID) {
         saveMessage(input: { queueId: $queueId, body: $body }) {
@@ -343,38 +71,83 @@ test('only admins can write', async ({ teardown, equal, plan, same }) => {
     const res = await server.app.inject({
       method: 'POST',
       url: '/graphql',
+      headers: {
+        'X-PLATFORMATIC-ADMIN-SECRET': adminSecret
+      },
       payload: {
         query,
         variables: {
           body: msg,
-          queueId: 1
+          queueId
         }
       }
     })
     const body = res.json()
     equal(res.statusCode, 200)
-    equal(body.errors[0].message, 'operation not allowed')
+
+    const { data } = body
+    const when = new Date(data.saveMessage.when)
+    equal(when.getTime() - now >= 0, true)
   }
+
+  await p
+  p = once(ee, 'called')
+  await p
 })
 
-test('`text plain` content type header in the Queue', async ({ teardown, equal, plan, same }) => {
-  plan(5)
+test('send a message to the dead letter queue after retries are completed', async ({ teardown, equal, plan, same }) => {
+  plan(9)
   const ee = new EventEmitter()
-  const { config, filename } = await getConfig()
-  const server = await buildServer(config)
-  teardown(() => server.stop())
-  teardown(() => rm(filename))
+  const server = await buildServer(teardown)
 
   const target = Fastify()
   target.post('/', async (req, reply) => {
-    same(req.body, 'HELLO FOLKS!', 'message is equal')
-    ee.emit('called')
-    return { ok: true }
+    same(req.body, { message: 'HELLO FOLKS!' }, 'message is equal')
+    throw new Error('This is down')
   })
 
   teardown(() => target.close())
   await target.listen({ port: 0 })
   const targetUrl = `http://localhost:${target.server.address().port}`
+
+  const deadLetterTarget = Fastify()
+  deadLetterTarget.post('/', async (req, reply) => {
+    same(req.body, { message: 'HELLO FOLKS!' }, 'message is equal')
+    ee.emit('called')
+    return { ok: true }
+  })
+
+  teardown(() => deadLetterTarget.close())
+  await deadLetterTarget.listen({ port: 0 })
+  const deadLetterTargetURL = `http://localhost:${deadLetterTarget.server.address().port}`
+
+  let deadLetterQueue
+  {
+    const res = await server.app.inject({
+      method: 'POST',
+      url: '/graphql',
+      headers: {
+        'X-PLATFORMATIC-ADMIN-SECRET': adminSecret
+      },
+      payload: {
+        query: `
+          mutation($callbackUrl: String!) {
+            saveQueue(input: { name: "test", callbackUrl: $callbackUrl, method: "POST" }) {
+              id
+            }
+          }
+        `,
+        variables: {
+          callbackUrl: deadLetterTargetURL
+        }
+      }
+    })
+    equal(res.statusCode, 200)
+    const body = res.json()
+    const { data } = body
+    deadLetterQueue = data.saveQueue.id
+    equal(deadLetterQueue, '1')
+  }
 
   let queueId
   {
@@ -386,14 +159,15 @@ test('`text plain` content type header in the Queue', async ({ teardown, equal, 
       },
       payload: {
         query: `
-          mutation($callbackUrl: String!) {
-            saveQueue(input: { name: "test", callbackUrl: $callbackUrl, method: "POST", headers: "{ \\"content-type\\": \\"text/plain\\" }" }) {
+          mutation($callbackUrl: String!, $deadLetterQueueId: ID) {
+            saveQueue(input: { name: "test", callbackUrl: $callbackUrl, method: "POST", deadLetterQueueId: $deadLetterQueueId, maxRetries: 1 }) {
               id
             }
           }
         `,
         variables: {
-          callbackUrl: targetUrl
+          callbackUrl: targetUrl,
+          deadLetterQueueId: deadLetterQueue
         }
       }
     })
@@ -401,13 +175,24 @@ test('`text plain` content type header in the Queue', async ({ teardown, equal, 
     const body = res.json()
     const { data } = body
     queueId = data.saveQueue.id
-    equal(queueId, '1')
+    equal(queueId, '2')
   }
 
   const p = once(ee, 'called')
   {
-    const msg = 'HELLO FOLKS!'
+    const msg = JSON.stringify({
+      message: 'HELLO FOLKS!'
+    })
     const now = Date.now()
+    const query = `
+      mutation($body: String!, $queueId: ID) {
+        saveMessage(input: { queueId: $queueId, body: $body }) {
+          id
+          when
+        }
+      }
+    `
+
     const res = await server.app.inject({
       method: 'POST',
       url: '/graphql',
@@ -415,14 +200,7 @@ test('`text plain` content type header in the Queue', async ({ teardown, equal, 
         'X-PLATFORMATIC-ADMIN-SECRET': adminSecret
       },
       payload: {
-        query: `
-          mutation($body: String!, $queueId: ID) {
-            saveMessage(input: { queueId: $queueId, body: $body } ) {
-              id
-              when
-            }
-          }
-        `,
+        query,
         variables: {
           body: msg,
           queueId
@@ -431,6 +209,253 @@ test('`text plain` content type header in the Queue', async ({ teardown, equal, 
     })
     const body = res.json()
     equal(res.statusCode, 200)
+
+    const { data } = body
+    const when = new Date(data.saveMessage.when)
+    equal(when.getTime() - now >= 0, true)
+  }
+
+  await p
+})
+
+test('send a message to the dead letter queue after retries are completed without content-type', async ({ teardown, equal, plan, same }) => {
+  plan(9)
+  const ee = new EventEmitter()
+  const server = await buildServer(teardown)
+
+  const target = Fastify()
+  target.post('/', (req, reply) => {
+    same(req.body, { message: 'HELLO FOLKS!' }, 'message is equal')
+    reply.status(500).send('This is down')
+  })
+
+  teardown(() => target.close())
+  await target.listen({ port: 0 })
+  const targetUrl = `http://localhost:${target.server.address().port}`
+
+  const deadLetterTarget = Fastify()
+  deadLetterTarget.post('/', async (req, reply) => {
+    same(req.body, { message: 'HELLO FOLKS!' }, 'message is equal')
+    ee.emit('called')
+    return { ok: true }
+  })
+
+  teardown(() => deadLetterTarget.close())
+  await deadLetterTarget.listen({ port: 0 })
+  const deadLetterTargetURL = `http://localhost:${deadLetterTarget.server.address().port}`
+
+  let deadLetterQueue
+  {
+    const res = await server.app.inject({
+      method: 'POST',
+      url: '/graphql',
+      headers: {
+        'X-PLATFORMATIC-ADMIN-SECRET': adminSecret
+      },
+      payload: {
+        query: `
+          mutation($callbackUrl: String!) {
+            saveQueue(input: { name: "test", callbackUrl: $callbackUrl, method: "POST" }) {
+              id
+            }
+          }
+        `,
+        variables: {
+          callbackUrl: deadLetterTargetURL
+        }
+      }
+    })
+    equal(res.statusCode, 200)
+    const body = res.json()
+    const { data } = body
+    deadLetterQueue = data.saveQueue.id
+    equal(deadLetterQueue, '1')
+  }
+
+  let queueId
+  {
+    const res = await server.app.inject({
+      method: 'POST',
+      url: '/graphql',
+      headers: {
+        'X-PLATFORMATIC-ADMIN-SECRET': adminSecret
+      },
+      payload: {
+        query: `
+          mutation($callbackUrl: String!, $deadLetterQueueId: ID) {
+            saveQueue(input: { name: "test", callbackUrl: $callbackUrl, method: "POST", deadLetterQueueId: $deadLetterQueueId, maxRetries: 1 }) {
+              id
+            }
+          }
+        `,
+        variables: {
+          callbackUrl: targetUrl,
+          deadLetterQueueId: deadLetterQueue
+        }
+      }
+    })
+    equal(res.statusCode, 200)
+    const body = res.json()
+    const { data } = body
+    queueId = data.saveQueue.id
+    equal(queueId, '2')
+  }
+
+  const p = once(ee, 'called')
+  {
+    const msg = JSON.stringify({
+      message: 'HELLO FOLKS!'
+    })
+    const now = Date.now()
+    const query = `
+      mutation($body: String!, $queueId: ID) {
+        saveMessage(input: { queueId: $queueId, body: $body }) {
+          id
+          when
+        }
+      }
+    `
+
+    const res = await server.app.inject({
+      method: 'POST',
+      url: '/graphql',
+      headers: {
+        'X-PLATFORMATIC-ADMIN-SECRET': adminSecret
+      },
+      payload: {
+        query,
+        variables: {
+          body: msg,
+          queueId
+        }
+      }
+    })
+    const body = res.json()
+    equal(res.statusCode, 200)
+
+    const { data } = body
+    const when = new Date(data.saveMessage.when)
+    equal(when.getTime() - now >= 0, true)
+  }
+
+  await p
+})
+
+test('send a message to the dead letter queue after retries are completed with text/plain', async ({ teardown, equal, plan, same }) => {
+  plan(9)
+  const ee = new EventEmitter()
+  const server = await buildServer(teardown)
+
+  const target = Fastify()
+  target.post('/', (req, reply) => {
+    same(req.body, { message: 'HELLO FOLKS!' }, 'message is equal')
+    reply.status(500).headers({ 'content-type': 'text/plain' }).send('This is down')
+  })
+
+  teardown(() => target.close())
+  await target.listen({ port: 0 })
+  const targetUrl = `http://localhost:${target.server.address().port}`
+
+  const deadLetterTarget = Fastify()
+  deadLetterTarget.post('/', async (req, reply) => {
+    same(req.body, { message: 'HELLO FOLKS!' }, 'message is equal')
+    ee.emit('called')
+    return { ok: true }
+  })
+
+  teardown(() => deadLetterTarget.close())
+  await deadLetterTarget.listen({ port: 0 })
+  const deadLetterTargetURL = `http://localhost:${deadLetterTarget.server.address().port}`
+
+  let deadLetterQueue
+  {
+    const res = await server.app.inject({
+      method: 'POST',
+      url: '/graphql',
+      headers: {
+        'X-PLATFORMATIC-ADMIN-SECRET': adminSecret
+      },
+      payload: {
+        query: `
+          mutation($callbackUrl: String!) {
+            saveQueue(input: { name: "test", callbackUrl: $callbackUrl, method: "POST" }) {
+              id
+            }
+          }
+        `,
+        variables: {
+          callbackUrl: deadLetterTargetURL
+        }
+      }
+    })
+    equal(res.statusCode, 200)
+    const body = res.json()
+    const { data } = body
+    deadLetterQueue = data.saveQueue.id
+    equal(deadLetterQueue, '1')
+  }
+
+  let queueId
+  {
+    const res = await server.app.inject({
+      method: 'POST',
+      url: '/graphql',
+      headers: {
+        'X-PLATFORMATIC-ADMIN-SECRET': adminSecret
+      },
+      payload: {
+        query: `
+          mutation($callbackUrl: String!, $deadLetterQueueId: ID) {
+            saveQueue(input: { name: "test", callbackUrl: $callbackUrl, method: "POST", deadLetterQueueId: $deadLetterQueueId, maxRetries: 1 }) {
+              id
+            }
+          }
+        `,
+        variables: {
+          callbackUrl: targetUrl,
+          deadLetterQueueId: deadLetterQueue
+        }
+      }
+    })
+    equal(res.statusCode, 200)
+    const body = res.json()
+    const { data } = body
+    queueId = data.saveQueue.id
+    equal(queueId, '2')
+  }
+
+  const p = once(ee, 'called')
+  {
+    const msg = JSON.stringify({
+      message: 'HELLO FOLKS!'
+    })
+    const now = Date.now()
+    const query = `
+      mutation($body: String!, $queueId: ID) {
+        saveMessage(input: { queueId: $queueId, body: $body }) {
+          id
+          when
+        }
+      }
+    `
+
+    const res = await server.app.inject({
+      method: 'POST',
+      url: '/graphql',
+      headers: {
+        'X-PLATFORMATIC-ADMIN-SECRET': adminSecret
+      },
+      payload: {
+        query,
+        variables: {
+          body: msg,
+          queueId
+        }
+      }
+    })
+    const body = res.json()
+    equal(res.statusCode, 200)
+
     const { data } = body
     const when = new Date(data.saveMessage.when)
     equal(when.getTime() - now >= 0, true)
