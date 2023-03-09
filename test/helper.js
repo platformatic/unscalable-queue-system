@@ -1,5 +1,6 @@
 'use strict'
 
+const { teardown } = require('tap')
 const { join } = require('path')
 const { readFile } = require('fs/promises')
 const { setGlobalDispatcher, Agent } = require('undici')
@@ -16,8 +17,8 @@ const adminSecret = 'admin-secret'
 async function getConfig () {
   const config = JSON.parse(await readFile(join(__dirname, '../platformatic.db.json'), 'utf8'))
   config.server.port = 0
-  // config.server.logger = { level: 'trace' }
-  config.server.logger = false
+  config.server.logger = { level: 'error' }
+  // config.server.logger = false
   config.core.connectionString = 'postgres://postgres:postgres@127.0.0.1:5432/postgres'
   config.migrations.autoApply = true
   config.types.autogenerate = false
@@ -32,11 +33,17 @@ async function buildServer (teardown) {
   return server
 }
 
+let pool = null
+
 async function cleandb () {
-  const pool = createConnectionPool({
-    connectionString: 'postgres://postgres:postgres@127.0.0.1:5432/postgres',
-    bigIntMode: 'bigint'
-  })
+  if (!pool) {
+    pool = createConnectionPool({
+      connectionString: 'postgres://postgres:postgres@127.0.0.1:5432/postgres',
+      bigIntMode: 'bigint'
+    })
+    teardown(() => pool.dispose())
+  }
+
   const sql = createConnectionPool.sql
 
   // TODO use schemas
@@ -52,8 +59,6 @@ async function cleandb () {
   try {
     await pool.query(sql`DROP TABLE VERSIONS;`)
   } catch {}
-
-  await pool.dispose()
 }
 
 module.exports.getConfig = getConfig
