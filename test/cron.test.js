@@ -1,9 +1,11 @@
 'use strict'
 
-const { buildServer, adminSecret } = require('./helper')
-const { test } = require('tap')
+const { buildServer, adminSecret, cleandb } = require('./helper')
+const { test, beforeEach } = require('tap')
 const { once, EventEmitter } = require('events')
 const Fastify = require('fastify')
+
+beforeEach(cleandb)
 
 test('happy path', async ({ teardown, equal, plan, same }) => {
   plan(6)

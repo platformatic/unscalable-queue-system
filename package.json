@@ -6,6 +6,7 @@
     "test": "npm run lint && npm run test:unit"
   },
   "devDependencies": {
+    "@databases/pg": "^5.4.1",
     "@fastify/pre-commit": "^2.0.2",
     "fastify": "^4.10.2",
     "pino-pretty": "^9.1.1",
@@ -14,7 +15,6 @@
     "tap": "^16.3.2"
   },
   "dependencies": {
-    "@databases/pg": "^5.4.1",
     "@platformatic/sql-graphql": "^0.16.0",
     "@platformatic/sql-mapper": "^0.16.0",
     "c8": "^7.12.0",

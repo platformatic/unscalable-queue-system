@@ -33,7 +33,10 @@
     "dir": "migrations"
   },
   "plugin": {
-    "path": "plugin.js"
+    "path": "plugin.js",
+    "options": {
+      "lock": "{PLT_LOCK}"
+    }
   },
   "types": {
     "autogenerate": true
