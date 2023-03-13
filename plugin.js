@@ -8,17 +8,28 @@ process.env.TZ = 'UTC'
 const cronPlugin = require('./lib/cron')
 const Executor = require('./lib/executor')
 const { scheduler } = require('timers/promises')
+const { on } = require('events')
 
 /** @param {import('fastify').FastifyInstance} app */
 module.exports = async function (app, options) {
   const lock = Number(options.lock) || 42
+  /* c8 ignore next 1 */
   const leaderPoll = Number(options.leaderPoll) || 10000
 
   app.log.info('Locking cron plugin to advisory lock %d', lock)
 
   const dummyExecutor = {
     execute () {},
-    updateTimer () {},
+    updateTimer () {
+      const { db, sql } = app.platformatic
+      db.query(sql`
+        NOTIFY "update_timer";
+      `)
+        /* c8 ignore next 3 */
+        .catch((err) => {
+          app.log.error({ err }, 'Error in dummy updateTimer')
+        })
+    },
     stop () {}
   }
 
@@ -37,7 +48,32 @@ module.exports = async function (app, options) {
         if (leader && !elected) {
           app.log.info('This instance is the leader')
           executor = new Executor(app)
+          executor.execute()
           elected = true
+          ;(async () => {
+            await t.query(sql`
+              LISTEN "update_timer";
+            `)
+            for await (const notification of on(t._driver.client, 'notification', { signal: abortController.signal })) {
+              app.log.debug({ notification }, 'Received notification')
+              try {
+                await executor.execute()
+                /* c8 ignore next 3 */
+              } catch (err) {
+                app.log.warn({ err }, 'error while processing notification')
+              }
+              // TODO: write automated tests for this
+            }
+            /* c8 ignore next 19 */
+          })()
+            .catch((err) => {
+              if (err.name !== 'AbortError') {
+              // an error occurred, and it's expected
+                app.log.error({ err }, 'Error in notification loop')
+              } else {
+                abortController.abort()
+              }
+            })
         } else if (leader && elected) {
           app.log.debug('This instance is still the leader')
         } else if (!leader && elected) {
@@ -64,6 +100,7 @@ module.exports = async function (app, options) {
 
   retryLeaderLoop(leaderLoop)
 
+  /* c8 ignore next 10 */
   function retryLeaderLoop () {
     leaderLoop.catch((err) => {
       app.log.error({ err }, 'Error in leader loop')

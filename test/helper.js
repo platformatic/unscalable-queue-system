@@ -23,6 +23,7 @@ async function getConfig () {
   config.migrations.autoApply = true
   config.types.autogenerate = false
   config.authorization.adminSecret = adminSecret
+  config.plugin.options.leaderPoll = 1000
   return { config }
 }
 

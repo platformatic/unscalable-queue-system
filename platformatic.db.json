@@ -35,7 +35,8 @@
   "plugin": {
     "path": "plugin.js",
     "options": {
-      "lock": "{PLT_LOCK}"
+      "lock": "{PLT_LOCK}",
+      "leaderPoll": "{PLT_LEADER_POLL}"
     }
   },
   "types": {
