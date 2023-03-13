@@ -1,6 +1,6 @@
 /* create crons table */
 CREATE TABLE crons (
-  id INTEGER PRIMARY KEY,
+  id SERIAL PRIMARY KEY,
   queue_id INTEGER NOT NULL REFERENCES queues(id),
 
   schedule VARCHAR(255) NOT NULL,

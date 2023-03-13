@@ -13,7 +13,7 @@ declare interface Message {
     sentAt?: string | null;
     createdAt: string;
     updatedAt: string;
-    failed: string;
+    failed: boolean;
     retries: number;
     cronId?: number | null;
 }

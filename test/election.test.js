@@ -8,9 +8,9 @@ const Fastify = require('fastify')
 beforeEach(cleandb)
 
 test('happy path', async ({ teardown, equal, plan, same }) => {
-  plan(6)
   const ee = new EventEmitter()
-  const server = await buildServer(teardown)
+  const server1 = await buildServer(teardown)
+  const server2 = await buildServer(teardown)
 
   const target = Fastify()
   target.post('/', async (req, reply) => {
@@ -25,7 +25,7 @@ test('happy path', async ({ teardown, equal, plan, same }) => {
 
   let queueId
   {
-    const res = await server.app.inject({
+    const res = await server1.app.inject({
       method: 'POST',
       url: '/graphql',
       headers: {
@@ -51,23 +51,22 @@ test('happy path', async ({ teardown, equal, plan, same }) => {
     equal(queueId, '1')
   }
 
-  const p1 = once(ee, 'called')
-  const schedule = '*/1 * * * * *'
-
+  const p = once(ee, 'called')
   {
     const msg = JSON.stringify({
       message: 'HELLO FOLKS!'
     })
+    const now = Date.now()
     const query = `
-      mutation($body: String!, $queueId: ID, $schedule: String!) {
-        saveCron(input: { queueId: $queueId, headers: "{ \\"content-type\\": \\"application/json\\" }", body: $body, schedule: $schedule }) {
+      mutation($body: String!, $queueId: ID) {
+        saveMessage(input: { queueId: $queueId, headers: "{ \\"content-type\\": \\"application/json\\" }", body: $body  }) {
           id
-          schedule
+          when
         }
       }
     `
 
-    const res = await server.app.inject({
+    const res = await server2.app.inject({
       method: 'POST',
       url: '/graphql',
       headers: {
@@ -77,8 +76,7 @@ test('happy path', async ({ teardown, equal, plan, same }) => {
         query,
         variables: {
           body: msg,
-          queueId,
-          schedule
+          queueId
         }
       }
     })
@@ -86,38 +84,32 @@ test('happy path', async ({ teardown, equal, plan, same }) => {
     equal(res.statusCode, 200)
 
     const { data } = body
-    equal(data.saveCron.schedule, schedule)
-
-    /*
-     * Add items
-     *
-     *     items {
-     *       id
-     *       when
-     *     }
-     *
-     * equal(data.saveCron.items.length, 1)
-     * const item = data.saveCron.items[0]
-     * const when = new Date(item.when)
-     * equal(when.getTime() - now <= 1000, true)
-     */
+    const when = new Date(data.saveMessage.when)
+    equal(when.getTime() - now >= 0, true)
   }
 
-  await p1
-
-  const p2 = once(ee, 'called')
-  await p2
+  await p
 })
 
-test('invalid cron expression', async ({ teardown, equal, plan, same }) => {
-  plan(4)
-  const server = await buildServer(teardown)
+test('re-election', async ({ teardown, equal, plan, same }) => {
+  const ee = new EventEmitter()
+  const server1 = await buildServer(teardown)
+  const server2 = await buildServer(teardown)
 
-  const targetUrl = 'http://localhost:4242'
+  const target = Fastify()
+  target.post('/', async (req, reply) => {
+    same(req.body, { message: 'HELLO FOLKS!' }, 'message is equal')
+    ee.emit('called')
+    return { ok: true }
+  })
+
+  teardown(() => target.close())
+  await target.listen({ port: 0 })
+  const targetUrl = `http://localhost:${target.server.address().port}`
 
   let queueId
   {
-    const res = await server.app.inject({
+    const res = await server1.app.inject({
       method: 'POST',
       url: '/graphql',
       headers: {
@@ -143,22 +135,24 @@ test('invalid cron expression', async ({ teardown, equal, plan, same }) => {
     equal(queueId, '1')
   }
 
-  const schedule = 'hello world'
+  await server1.stop()
 
+  const p = once(ee, 'called')
   {
     const msg = JSON.stringify({
       message: 'HELLO FOLKS!'
     })
+    const now = Date.now()
     const query = `
-      mutation($body: String!, $queueId: ID, $schedule: String!) {
-        saveCron(input: { queueId: $queueId, headers: "{ \\"content-type\\": \\"application/json\\" }", body: $body, schedule: $schedule }) {
+      mutation($body: String!, $queueId: ID) {
+        saveMessage(input: { queueId: $queueId, headers: "{ \\"content-type\\": \\"application/json\\" }", body: $body  }) {
           id
-          schedule
+          when
         }
       }
     `
 
-    const res = await server.app.inject({
+    const res = await server2.app.inject({
       method: 'POST',
       url: '/graphql',
       headers: {
@@ -168,13 +162,17 @@ test('invalid cron expression', async ({ teardown, equal, plan, same }) => {
         query,
         variables: {
           body: msg,
-          queueId,
-          schedule
+          queueId
         }
       }
     })
     const body = res.json()
     equal(res.statusCode, 200)
-    same(body.errors[0].message, 'Invalid cron expression')
+
+    const { data } = body
+    const when = new Date(data.saveMessage.when)
+    equal(when.getTime() - now >= 0, true)
   }
+
+  await p
 })
