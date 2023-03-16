@@ -21,7 +21,7 @@ jobs:
           pull_sha=$(jq --raw-output .pull_request.base.sha "$GITHUB_EVENT_PATH")
           echo "pull_sha=${pull_sha}" >> $GITHUB_OUTPUT
           echo $pull_sha
-      - uses: neondatabase/delete-branch-by-name-action.yml@main
+      - uses: neondatabase/delete-branch-by-name-action@main
         with:
           project_id: ${{ secrets.NEON_PROJECT_ID }}
           branch_name: ${{ steps.get_pull_number.outputs.pull_sha }}
