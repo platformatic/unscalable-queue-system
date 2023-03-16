@@ -33,8 +33,6 @@ jobs:
         run: echo branch_id ${{ steps.create-branch.outputs.branch_id }}
       - name: Get DATABASE_URL
         run: echo DATABASE_URL ${{ steps.create-branch.outputs.db_url}}/neondb
-      - uses: actions/checkout@v2
-      - run: npm install
       - name: Deploy project
         uses: platformatic/onestep@latest
         with:
