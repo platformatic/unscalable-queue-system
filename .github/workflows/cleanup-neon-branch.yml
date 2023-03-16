@@ -1,0 +1,48 @@
+name: Cleanup Neon Branch on GitHub
+on:
+  push:
+    branches:
+      - 'main'
+jobs:
+  delete-branch:
+    environment: 
+      name: development
+    permissions: write-all
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get PR info
+        id: get-pr-info
+        uses: actions-ecosystem/action-get-merged-pull-request@v1.0.1
+        with:
+          github_token: ${{secrets.GITHUB_TOKEN}}
+
+      - run: |
+          echo ${{ steps.get-pr-info.outputs.number}}
+      - name: Get last commit SHA
+        id: get_sha
+        run: |
+          echo "sha=${{ github.event.before }}" >> $GITHUB_OUTPUT
+      - name: Search branch by name
+        id: get_branch_id
+        run: |
+          branch_id=$(curl --silent \
+            "https://console.neon.tech/api/v2/projects/${PROJECT_ID}/branches" \
+            --header "Accept: application/json" \
+            --header "Content-Type: application/json" \
+            --header "Authorization: Bearer ${API_KEY}" \
+            | jq -r .branches \
+            | jq -c '.[] | select(.name | contains("'${SHA}'")) .id' \
+            | jq -r \
+            ) \
+            
+          echo "branch_id=${branch_id}" >> $GITHUB_OUTPUT
+        env:
+          PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+          API_KEY: ${{ secrets.NEON_API_KEY }}
+          SHA: ${{ steps.get_sha.outputs.sha }}
+      - name: Delete Neon Branch
+        uses: neondatabase/delete-branch-action@v2
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          branch_id: ${{ steps.get_branch_id.outputs.branch_id }}
+          api_key: ${{ secrets.NEON_API_KEY }}
