@@ -48,5 +48,5 @@ jobs:
           PORT: 3042 
           PLT_SERVER_HOSTNAME: 127.0.0.1 
           PLT_ADMIN_SECRET: ${{ secrets.PLT_ADMIN_SECRET }}
-          PLT_LOCK: ${{ vars.PLT_LOCk }}
+          PLT_LOCK: ${{ vars.PLT_LOCK }}
           DATABASE_URL: ${{ steps.create-branch.outputs.db_url}}/neondb
