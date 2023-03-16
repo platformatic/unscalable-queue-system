@@ -5,6 +5,11 @@ on:
       - 'docs/**'
       - '**.md'
 
+# This allows a subsequently queued workflow run to interrupt previous runs
+concurrency:
+  group: "${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}"
+  cancel-in-progress: true
+
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
@@ -15,6 +20,28 @@ jobs:
         uses: actions/checkout@v3
       - name: npm install --omit=dev
         run: npm install --omit=dev
+      - name: Get PR number
+        id: get_pull_number
+        run: |
+          pull_sha=$(jq --raw-output .pull_request.base.sha "$GITHUB_EVENT_PATH")
+          echo "pull_sha=${pull_sha}" >> $GITHUB_OUTPUT
+          echo $pull_sha
+      - uses: neondatabase/delete-branch-by-name-action@main
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          branch_name: ${{ steps.get_pull_number.outputs.pull_sha }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+      - run: sleep 10
+      - uses: neondatabase/create-branch-action@v2
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          branch_name: ${{ steps.get_pull_number.outputs.pull_sha }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+          username: ${{ secrets.DBUSER }}
+          Password: ${{ secrets.DBPASSWORD }}
+        id: create-branch
+      - name: Get DATABASE_URL
+        run: echo DATABASE_URL=${{ steps.create-branch.outputs.db_url}}/neondb
       - name: Deploy project
         uses: platformatic/onestep@latest
         with:
@@ -22,9 +49,10 @@ jobs:
           platformatic_api_key: ${{ secrets.PLATFORMATIC_API_KEY }}
           platformatic_config_path: ./platformatic.db.json
         env:
-          DATABASE_URL: sqlite://./db.sqlite 
           PLT_SERVER_LOGGER_LEVEL: info 
           PORT: 3042 
           PLT_SERVER_HOSTNAME: 127.0.0.1 
           PLT_ADMIN_SECRET: ${{ secrets.PLT_ADMIN_SECRET }}
-
+          PLT_LOCK: ${{ vars.PLT_LOCK }}
+          PLT_LEADER_POLL: ${{ vars.PLT_LEADER_POLL }}
+          DATABASE_URL: ${{ steps.create-branch.outputs.db_url}}/neondb
