@@ -29,10 +29,8 @@ jobs:
           username: ${{secrets.DBUSERNAME}}
           Password: ${{secrets.DBPASSWORD}}       
         id: create-branch
-      - name: Get branch id
-        run: echo branch_id ${{ steps.create-branch.outputs.branch_id }}
-      - name: Get DATABASE_URL
-        run: echo DATABASE_URL ${{ steps.create-branch.outputs.db_url}}/neondb
+      - run: echo project_id ${{ steps.create-branch.outputs.project_id}}
+      - run: echo branch_id ${{ steps.create-branch.outputs.branch_id}}
       - name: Deploy project
         uses: platformatic/onestep@latest
         with:
