@@ -25,7 +25,7 @@ jobs:
         with:
           project_id: ${{ secrets.NEON_PROJECT_ID }}
           parent_branch_id: ${{ secrets.NEON_PARENT_BRANCH_ID }}
-          branch_name: {{ steps.get_pull_number.outputs.pull_sha }}
+          branch_name: ${{ steps.get_pull_number.outputs.pull_sha }}
           api_key: ${{ secrets.NEON_API_KEY }}
           username: ${{secrets.DBUSERNAME}}
           Password: ${{secrets.DBPASSWORD}}       
