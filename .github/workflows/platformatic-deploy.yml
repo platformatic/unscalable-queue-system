@@ -54,4 +54,5 @@ jobs:
           PLT_SERVER_HOSTNAME: 127.0.0.1 
           PLT_ADMIN_SECRET: ${{ secrets.PLT_ADMIN_SECRET }}
           PLT_LOCK: ${{ vars.PLT_LOCK }}
+          PLT_LEADER_POLL: ${{ vars.PLT_LEADER_POLL }}
           DATABASE_URL: ${{ steps.create-branch.outputs.db_url}}/neondb
