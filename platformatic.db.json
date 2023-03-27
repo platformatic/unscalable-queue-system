@@ -1,17 +1,11 @@
 {
-  "$schema": "https://platformatic.dev/schemas/v0.17.0/db",
+  "$schema": "https://platformatic.dev/schemas/v0.19.0/db",
   "server": {
     "hostname": "{PLT_SERVER_HOSTNAME}",
     "port": "{PORT}",
     "logger": {
       "level": "{PLT_SERVER_LOGGER_LEVEL}"
     }
-  },
-  "core": {
-    "connectionString": "{DATABASE_URL}",
-    "graphql": true,
-    "openapi": true,
-    "events": false
   },
   "authorization": {
     "adminSecret": "{PLT_ADMIN_SECRET}",
@@ -48,5 +42,11 @@
         }
       }
     ]
+  },
+  "db": {
+    "connectionString": "{DATABASE_URL}",
+    "graphql": true,
+    "openapi": true,
+    "events": false
   }
 }
