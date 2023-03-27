@@ -23,8 +23,8 @@ jobs:
         uses: platformatic/onestep@latest
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          platformatic_workspace_id: ${{ secrets.PLATFORMATIC_DYNAMIC_WORKSPACE_ID }}
-          platformatic_workspace_key: ${{ secrets.PLATFORMATIC_DYNAMIC_WORKSPACE_KEY }}
+          platformatic_workspace_id: ${{ secrets.PLATFORMATIC_STATIC_WORKSPACE_ID }}
+          platformatic_workspace_key: ${{ secrets.PLATFORMATIC_STATIC_WORKSPACE_KEY }}
           platformatic_config_path: ./platformatic.db.json
         env:
           PLT_SERVER_LOGGER_LEVEL: info 
