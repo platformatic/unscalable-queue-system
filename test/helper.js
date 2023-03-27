@@ -19,7 +19,7 @@ async function getConfig () {
   config.server.port = 0
   config.server.logger = { level: 'error' }
   // config.server.logger = false
-  config.core.connectionString = 'postgres://postgres:postgres@127.0.0.1:5432/postgres'
+  config.db.connectionString = 'postgres://postgres:postgres@127.0.0.1:5432/postgres'
   config.migrations.autoApply = true
   config.types.autogenerate = false
   config.authorization.adminSecret = adminSecret
