@@ -148,6 +148,10 @@ module.exports = async function (app, options) {
 
   await executor.execute()
 
+  app.get('/hello', (req, reply) => {
+    reply.send({ hello: 'world' })
+  })
+
   app.addHook('onClose', async () => {
     abortController.abort()
     await leaderLoop
