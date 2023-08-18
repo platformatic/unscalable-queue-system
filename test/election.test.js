@@ -25,7 +25,7 @@ test('happy path', async ({ teardown, equal, plan, same }) => {
 
   let queueId
   {
-    const res = await server1.app.inject({
+    const res = await server1.inject({
       method: 'POST',
       url: '/graphql',
       headers: {
@@ -66,7 +66,7 @@ test('happy path', async ({ teardown, equal, plan, same }) => {
       }
     `
 
-    const res = await server2.app.inject({
+    const res = await server2.inject({
       method: 'POST',
       url: '/graphql',
       headers: {
@@ -109,7 +109,7 @@ test('re-election', async ({ teardown, equal, plan, same }) => {
 
   let queueId
   {
-    const res = await server1.app.inject({
+    const res = await server1.inject({
       method: 'POST',
       url: '/graphql',
       headers: {
@@ -135,7 +135,7 @@ test('re-election', async ({ teardown, equal, plan, same }) => {
     equal(queueId, '1')
   }
 
-  await server1.stop()
+  await server1.close()
 
   const p = once(ee, 'called')
   {
@@ -152,7 +152,7 @@ test('re-election', async ({ teardown, equal, plan, same }) => {
       }
     `
 
-    const res = await server2.app.inject({
+    const res = await server2.inject({
       method: 'POST',
       url: '/graphql',
       headers: {

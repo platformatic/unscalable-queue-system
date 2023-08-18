@@ -29,7 +29,7 @@ test('retries on failure', async ({ teardown, equal, plan, same }) => {
 
   let queueId
   {
-    const res = await server.app.inject({
+    const res = await server.inject({
       method: 'POST',
       url: '/graphql',
       headers: {
@@ -70,7 +70,7 @@ test('retries on failure', async ({ teardown, equal, plan, same }) => {
       }
     `
 
-    const res = await server.app.inject({
+    const res = await server.inject({
       method: 'POST',
       url: '/graphql',
       headers: {
@@ -125,7 +125,7 @@ test('send a message to the dead letter queue after retries are completed', asyn
 
   let deadLetterQueue
   {
-    const res = await server.app.inject({
+    const res = await server.inject({
       method: 'POST',
       url: '/graphql',
       headers: {
@@ -153,7 +153,7 @@ test('send a message to the dead letter queue after retries are completed', asyn
 
   let queueId
   {
-    const res = await server.app.inject({
+    const res = await server.inject({
       method: 'POST',
       url: '/graphql',
       headers: {
@@ -195,7 +195,7 @@ test('send a message to the dead letter queue after retries are completed', asyn
       }
     `
 
-    const res = await server.app.inject({
+    const res = await server.inject({
       method: 'POST',
       url: '/graphql',
       headers: {
@@ -248,7 +248,7 @@ test('send a message to the dead letter queue after retries are completed withou
 
   let deadLetterQueue
   {
-    const res = await server.app.inject({
+    const res = await server.inject({
       method: 'POST',
       url: '/graphql',
       headers: {
@@ -276,7 +276,7 @@ test('send a message to the dead letter queue after retries are completed withou
 
   let queueId
   {
-    const res = await server.app.inject({
+    const res = await server.inject({
       method: 'POST',
       url: '/graphql',
       headers: {
@@ -318,7 +318,7 @@ test('send a message to the dead letter queue after retries are completed withou
       }
     `
 
-    const res = await server.app.inject({
+    const res = await server.inject({
       method: 'POST',
       url: '/graphql',
       headers: {
@@ -371,7 +371,7 @@ test('send a message to the dead letter queue after retries are completed with t
 
   let deadLetterQueue
   {
-    const res = await server.app.inject({
+    const res = await server.inject({
       method: 'POST',
       url: '/graphql',
       headers: {
@@ -399,7 +399,7 @@ test('send a message to the dead letter queue after retries are completed with t
 
   let queueId
   {
-    const res = await server.app.inject({
+    const res = await server.inject({
       method: 'POST',
       url: '/graphql',
       headers: {
@@ -441,7 +441,7 @@ test('send a message to the dead letter queue after retries are completed with t
       }
     `
 
-    const res = await server.app.inject({
+    const res = await server.inject({
       method: 'POST',
       url: '/graphql',
       headers: {

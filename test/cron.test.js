@@ -25,7 +25,7 @@ test('happy path', async ({ teardown, equal, plan, same }) => {
 
   let queueId
   {
-    const res = await server.app.inject({
+    const res = await server.inject({
       method: 'POST',
       url: '/graphql',
       headers: {
@@ -67,7 +67,7 @@ test('happy path', async ({ teardown, equal, plan, same }) => {
       }
     `
 
-    const res = await server.app.inject({
+    const res = await server.inject({
       method: 'POST',
       url: '/graphql',
       headers: {
@@ -117,7 +117,7 @@ test('invalid cron expression', async ({ teardown, equal, plan, same }) => {
 
   let queueId
   {
-    const res = await server.app.inject({
+    const res = await server.inject({
       method: 'POST',
       url: '/graphql',
       headers: {
@@ -158,7 +158,7 @@ test('invalid cron expression', async ({ teardown, equal, plan, same }) => {
       }
     `
 
-    const res = await server.app.inject({
+    const res = await server.inject({
       method: 'POST',
       url: '/graphql',
       headers: {
