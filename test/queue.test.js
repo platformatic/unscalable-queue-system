@@ -25,7 +25,7 @@ test('happy path', async ({ teardown, equal, plan, same }) => {
 
   let queueId
   {
-    const res = await server.app.inject({
+    const res = await server.inject({
       method: 'POST',
       url: '/graphql',
       headers: {
@@ -66,7 +66,7 @@ test('happy path', async ({ teardown, equal, plan, same }) => {
       }
     `
 
-    const res = await server.app.inject({
+    const res = await server.inject({
       method: 'POST',
       url: '/graphql',
       headers: {
@@ -109,7 +109,7 @@ test('`text plain` content type', async ({ teardown, equal, plan, same }) => {
 
   let queueId
   {
-    const res = await server.app.inject({
+    const res = await server.inject({
       method: 'POST',
       url: '/graphql',
       headers: {
@@ -139,7 +139,7 @@ test('`text plain` content type', async ({ teardown, equal, plan, same }) => {
   {
     const msg = 'HELLO FOLKS!'
     const now = Date.now()
-    const res = await server.app.inject({
+    const res = await server.inject({
       method: 'POST',
       url: '/graphql',
       headers: {
@@ -189,7 +189,7 @@ test('future when', async ({ teardown, equal, plan, same }) => {
 
   let queueId
   {
-    const res = await server.app.inject({
+    const res = await server.inject({
       method: 'POST',
       url: '/graphql',
       headers: {
@@ -232,7 +232,7 @@ test('future when', async ({ teardown, equal, plan, same }) => {
       }
     `
 
-    const res = await server.app.inject({
+    const res = await server.inject({
       method: 'POST',
       url: '/graphql',
       headers: {
@@ -266,7 +266,7 @@ test('only admins can write', async ({ teardown, equal, plan, same }) => {
   const targetUrl = 'http://localhost:4242'
 
   {
-    const res = await server.app.inject({
+    const res = await server.inject({
       method: 'POST',
       url: '/graphql',
       payload: {
@@ -300,7 +300,7 @@ test('only admins can write', async ({ teardown, equal, plan, same }) => {
       }
     `
 
-    const res = await server.app.inject({
+    const res = await server.inject({
       method: 'POST',
       url: '/graphql',
       payload: {
@@ -335,7 +335,7 @@ test('`text plain` content type header in the Queue', async ({ teardown, equal, 
 
   let queueId
   {
-    const res = await server.app.inject({
+    const res = await server.inject({
       method: 'POST',
       url: '/graphql',
       headers: {
@@ -365,7 +365,7 @@ test('`text plain` content type header in the Queue', async ({ teardown, equal, 
   {
     const msg = 'HELLO FOLKS!'
     const now = Date.now()
-    const res = await server.app.inject({
+    const res = await server.inject({
       method: 'POST',
       url: '/graphql',
       headers: {

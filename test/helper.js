@@ -30,7 +30,7 @@ async function getConfig () {
 async function buildServer (teardown) {
   const { config } = await getConfig()
   const server = await db.buildServer(config)
-  teardown(() => server.stop())
+  teardown(() => server.close())
   return server
 }
 
