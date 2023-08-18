@@ -9,6 +9,13 @@
     {
       "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
       "automerge": true
+    },
+    {
+      "groupName": "platformatic",
+      "matchPackagePrefixes": [
+        "@platformatic/",
+        "platformatic"
+      ]
     }
   ],
   "lockFileMaintenance": { "enabled": true }
