@@ -23,6 +23,7 @@ jobs:
         run: |
           echo "sha=${{ github.event.before }}" >> $GITHUB_OUTPUT
       - name: Search branch by name
+        if: ${{ steps.get-pr-info-outputs.number }} != ''
         id: get_branch_id
         run: |
           branch_id=$(curl --silent \
@@ -41,6 +42,7 @@ jobs:
           API_KEY: ${{ secrets.NEON_API_KEY }}
           SHA: ${{ steps.get_sha.outputs.sha }}
       - name: Delete Neon Branch
+        if: ${{ steps.get-pr-info-outputs.number }} != ''
         uses: neondatabase/delete-branch-action@v3
         with:
           project_id: ${{ secrets.NEON_PROJECT_ID }}
