@@ -1,4 +1,4 @@
-name: Cleanup Neon Branch on GitHub
+name: Cleanup Neon Database Branch
 on:
   push:
     branches:
