@@ -1,4 +1,4 @@
-name: Deploy Platformatic application to the cloud
+name: Deploy to Platformatic cloud
 on:
   pull_request:
     paths-ignore:
