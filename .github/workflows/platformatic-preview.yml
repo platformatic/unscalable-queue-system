@@ -23,13 +23,13 @@ jobs:
       - name: Get PR number
         id: get_pull_number
         run: |
-          pull_sha=$(jq --raw-output .pull_request.base.sha "$GITHUB_EVENT_PATH")
-          echo "pull_sha=${pull_sha}" >> $GITHUB_OUTPUT
-          echo $pull_sha
+          pull_number=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
+          echo "pull_number=${pull_number}" >> $GITHUB_OUTPUT
+          echo $pull_number
       - uses: neondatabase/create-branch-action@v4
         with:
           project_id: ${{ secrets.NEON_PROJECT_ID }}
-          branch_name: ${{ steps.get_pull_number.outputs.pull_sha }}
+          branch_name: pr-${{ steps.get_pull_number.outputs.pull_number }}
           api_key: ${{ secrets.NEON_API_KEY }}
         id: create-branch
       - name: Deploy project

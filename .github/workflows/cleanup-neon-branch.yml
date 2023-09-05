@@ -15,36 +15,12 @@ jobs:
         uses: actions-ecosystem/action-get-merged-pull-request@v1.0.1
         with:
           github_token: ${{secrets.GITHUB_TOKEN}}
-
       - run: |
           echo ${{ steps.get-pr-info.outputs.number}}
-      - name: Get last commit SHA
-        id: get_sha
-        run: |
-          echo "sha=${{ github.event.before }}" >> $GITHUB_OUTPUT
-      - name: Search branch by name
-        if: ${{ steps.get-pr-info-outputs.number }} != ''
-        id: get_branch_id
-        run: |
-          branch_id=$(curl --silent \
-            "https://console.neon.tech/api/v2/projects/${PROJECT_ID}/branches" \
-            --header "Accept: application/json" \
-            --header "Content-Type: application/json" \
-            --header "Authorization: Bearer ${API_KEY}" \
-            | jq -r .branches \
-            | jq -c '.[] | select(.name | contains("'${SHA}'")) .id' \
-            | jq -r \
-            ) \
-            
-          echo "branch=${branch_id}" >> $GITHUB_OUTPUT
-        env:
-          PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
-          API_KEY: ${{ secrets.NEON_API_KEY }}
-          SHA: ${{ steps.get_sha.outputs.sha }}
       - name: Delete Neon Branch
-        if: ${{ steps.get-pr-info-outputs.number }} != ''
+        if: ${{ steps.get-pr-info.outputs.number }} != ''
         uses: neondatabase/delete-branch-action@v3
         with:
           project_id: ${{ secrets.NEON_PROJECT_ID }}
-          branch: ${{ steps.get_branch_id.outputs.branch }}
+          branch: pr-${{ steps.get-pr-info.outputs.number }}
           api_key: ${{ secrets.NEON_API_KEY }}
