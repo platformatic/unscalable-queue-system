@@ -23,7 +23,7 @@ jobs:
       - name: Get PR number
         id: get_pull_number
         run: |
-          pull_number=$(jq --raw-output .pull_request.base.number "$GITHUB_EVENT_PATH")
+          pull_number=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
           echo "pull_number=${pull_number}" >> $GITHUB_OUTPUT
           echo $pull_number
       - uses: neondatabase/create-branch-action@v4
