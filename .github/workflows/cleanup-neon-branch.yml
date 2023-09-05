@@ -35,7 +35,7 @@ jobs:
             | jq -r \
             ) \
             
-          echo "branch_id=${branch_id}" >> $GITHUB_OUTPUT
+          echo "branch=${branch_id}" >> $GITHUB_OUTPUT
         env:
           PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
           API_KEY: ${{ secrets.NEON_API_KEY }}
@@ -44,5 +44,5 @@ jobs:
         uses: neondatabase/delete-branch-action@v3
         with:
           project_id: ${{ secrets.NEON_PROJECT_ID }}
-          branch_id: ${{ steps.get_branch_id.outputs.branch_id }}
+          branch: ${{ steps.get_branch_id.outputs.branch }}
           api_key: ${{ secrets.NEON_API_KEY }}
