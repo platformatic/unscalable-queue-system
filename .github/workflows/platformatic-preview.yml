@@ -32,8 +32,6 @@ jobs:
           branch_name: ${{ steps.get_pull_number.outputs.pull_sha }}
           api_key: ${{ secrets.NEON_API_KEY }}
         id: create-branch
-      - name: Get DATABASE_URL
-        run: echo DATABASE_URL=${{ steps.create-branch.outputs.db_url}}
       - name: Deploy project
         uses: platformatic/onestep@latest
         with:
@@ -48,4 +46,4 @@ jobs:
           PLT_ADMIN_SECRET: ${{ secrets.PLT_ADMIN_SECRET }}
           PLT_LOCK: ${{ vars.PLT_LOCK }}
           PLT_LEADER_POLL: ${{ vars.PLT_LEADER_POLL }}
-          DATABASE_URL: ${{ steps.create-branch.outputs.db_url}}
+          DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}
