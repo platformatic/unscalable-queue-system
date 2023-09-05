@@ -18,7 +18,7 @@ jobs:
       - run: |
           echo ${{ steps.get-pr-info.outputs.number}}
       - name: Delete Neon Branch
-        if: ${{ steps.get-pr-info.outputs.number }} != ''
+        if: ${{ steps.get-pr-info.outputs.number }} != null
         uses: neondatabase/delete-branch-action@v3
         with:
           project_id: ${{ secrets.NEON_PROJECT_ID }}
