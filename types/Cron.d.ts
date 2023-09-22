@@ -4,14 +4,13 @@
  */
 declare interface Cron {
     id?: number;
-    queueId: number;
-    schedule: string;
-    createdAt: string;
-    updatedAt: string;
     body?: string | null;
+    createdAt?: string | null;
     headers?: {
         [name: string]: any;
     } | null;
+    queueId: number;
+    schedule: string;
+    updatedAt?: string | null;
 }
-
 export { Cron };

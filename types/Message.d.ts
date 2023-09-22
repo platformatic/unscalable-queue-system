@@ -4,18 +4,17 @@
  */
 declare interface Message {
     id?: number;
-    queueId: number;
-    when: string;
     body?: string | null;
+    createdAt?: string | null;
+    cronId?: number | null;
+    failed: boolean;
     headers?: {
         [name: string]: any;
     } | null;
-    sentAt?: string | null;
-    createdAt: string;
-    updatedAt: string;
-    failed: boolean;
+    queueId: number;
     retries: number;
-    cronId?: number | null;
+    sentAt?: string | null;
+    updatedAt?: string | null;
+    when: string;
 }
-
 export { Message };

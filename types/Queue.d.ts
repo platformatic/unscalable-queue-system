@@ -4,16 +4,15 @@
  */
 declare interface Queue {
     id?: number;
-    name: string;
-    createdAt: string;
-    updatedAt: string;
     callbackUrl: string;
-    method: string;
+    createdAt?: string | null;
+    deadLetterQueueId?: number | null;
     headers?: {
         [name: string]: any;
     } | null;
-    deadLetterQueueId?: number | null;
     maxRetries: number;
+    method: string;
+    name: string;
+    updatedAt?: string | null;
 }
-
 export { Queue };
