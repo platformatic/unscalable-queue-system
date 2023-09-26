@@ -15,11 +15,11 @@
     "tap": "^16.3.2"
   },
   "dependencies": {
-    "@platformatic/db": "^0.46.0",
+    "@platformatic/db": "^0.47.0",
     "c8": "^8.0.0",
     "cron-parser": "^4.7.1",
     "fastify-plugin": "^4.5.0",
-    "platformatic": "^0.46.0"
+    "platformatic": "^0.47.0"
   },
   "engines": {
     "node": "^18.8.0 || >=19"
