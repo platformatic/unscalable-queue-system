@@ -26,7 +26,7 @@ jobs:
           pull_number=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
           echo "pull_number=${pull_number}" >> $GITHUB_OUTPUT
           echo $pull_number
-      - uses: neondatabase/create-branch-action@v4
+      - uses: neondatabase/create-branch-action@v5
         with:
           project_id: ${{ secrets.NEON_PROJECT_ID }}
           branch_name: pr-${{ steps.get_pull_number.outputs.pull_number }}
