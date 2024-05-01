@@ -25,7 +25,7 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      - uses: ikalnytskyi/action-setup-postgres@v4
+      - uses: ikalnytskyi/action-setup-postgres@v6
 
       - name: Install
         run: |
