@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@platformatic/db": "^1.0.0",
-    "c8": "^8.0.0",
+    "c8": "^10.0.0",
     "cron-parser": "^4.7.1",
     "fastify-plugin": "^4.5.0",
     "platformatic": "^1.0.0"
