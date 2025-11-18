@@ -16,7 +16,7 @@ jobs:
       name: main
     steps:
       - name: Checkout application project repository
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
       - name: npm install --omit=dev
         run: npm install --omit=dev
       - name: Deploy project
